@@ -15,7 +15,7 @@ The SIG is in the process of starting up and currently does not have any officia
 
 You can join us in #sig-transaction in the [TiKV community Slack](https://tikv.org/chat); come say hi! We use English or Chinese.
 
-We should have an announcement mailing list soon so you can stay up to date with what we're up to.
+You can read or join our announcement [mailing list](https://groups.google.com/d/forum/tikv-sig-transaction), so you can stay up to date with what we're up to.
 
 We will have formal membership of the group ready later in the year.
 
