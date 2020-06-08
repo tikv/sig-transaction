@@ -4,6 +4,8 @@
 
 ## Technologies in TiKV
 
+* [Notes on transactions](tikv/README.md)
+
 ### Transactions overview
 
 * [TiDB docs](https://pingcap.com/docs/stable/transaction-overview/)
@@ -31,6 +33,8 @@
 * [Wikipedia article on isolation](https://en.wikipedia.org/wiki/Isolation_(database_systems))
 * [Wikipedia article on snapshot isolation](https://en.wikipedia.org/wiki/Snapshot_isolation)
 * [Jepsen post on consistency](https://jepsen.io/consistency)
+* [Percolator paper](https://research.google/pubs/pub36726/)
+* [Spanner paper](https://static.googleusercontent.com/media/research.google.com/en//archive/spanner-osdi2012.pdf)
 
 ## Meta: docs about SIG-transaction
 
