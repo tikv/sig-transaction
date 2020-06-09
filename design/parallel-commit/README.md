@@ -8,6 +8,7 @@ Parallel commit extends pipelined pessimistic locking. The key idea is that we c
 
 This modification is sound because the source of truth for whether a transaction is committed is considered to be distributed among all locks.
 
+
 ## Protocol
 
 ### Phase 1: reads and writes
@@ -68,19 +69,56 @@ Consider the following example: transaction 1 with start_ts = 1, prewrite @ ts=2
 However, if the finalise message is lost, then we must initiate a 'resolve lock' once the lock times out. There are some options:
 
 * Use the prewrite ts: this is unsound because the ts is less than the read's ts and so the read will see different values for the key depending on whether it arrives before or after the commit happening, even though its ts is > than the commit ts. That violates the Read Committed property.
-* Transaction 2 returns an error to TiDB and TiDB gets a new ts from PD and uses that as the commit_ts for the resolve lock request. This has the disadvantage that non-locking reads can block and then fail, and require the reader to resolve locks.
-* Record the 'max read ts' for each key. E.g., when the read arrives, we record 3 as the max_read_ts (as long as there is no hight read timestamp). We can then use `max_read_ts + 1` as the commit ts. However, that means that timestamps are no longer unique. It's unclear how much of a problem that is.
+* Transaction 2 returns an error to TiDB and TiDB gets a new ts from PD and uses that as the commit_ts for the resolve lock request. This has the disadvantage that non-locking reads can block and then fail, and require the reader to resolve locks. This timestamp is also later than the timestamp that transaction 1's client thinks it is, which can lead to RC violation.
+* Record the 'max read ts' for each key. E.g., when the read arrives, we record 3 as the max_read_ts (as long as there is no hight read timestamp). We can then use `max_read_ts + 1` as the commit ts. However, that means that timestamps are no longer unique. It's unclear how much of a problem that is. If it is implemented on disk, then it would increase latency of reads intolerably. If it is implemented in memory it could use a lot of memory and we'd need to handle recovery somehow.
 * Get a new ts from PD. This has the problem that TiDB may have reported the transaction as committed at an earlier times stamp to the user, which can lead to RC violation.
+* Use a hybrid logical clock (HLC) for timestamps. In this way we can enforce causal consistency rather than linearisability. In effect, the ordering of timestamps becomes partial and if the finalise message is lost then we cannot compare transaction 1's timestamps with transaction 2's timestamps without further resolution. Since this would require changing timestamps everywhere, it would be *a lot* of work. Its also not clear exactly how this would be implemented and how this would affect transaction 2. Seems like at the least, non-locking reads would block.
 
 
-TODO: The problem is that, if a key is read with ts=2, and then prewritten by a transaction with start_ts=1, and there should be a way for us to guarantee the final commit_ts > 2. According to youjiali's original design, we can persist the max_read_ts when prewritting. However there's still a problem that if we are going to prewrite with max_read_ts=2, but before we finishing prewrite, anther read with ts=3 may arrive.  Here I didn't fully understand how you are going to solve this problem...
+In order to guarantee SI, commit ts need to satisfy:
+* It is larger than the start ts of all transactions that have not read the lock.
+* It can be larger or smaller than the transaction start ts that are executed at the same time and read the lock.
+* It is smaller than the start ts of subsequent transactions.
 
+Consider all cases of Parallel Commit:
+* Normal execution process: After Prewrite is completed, it will be returned to the client response. If it is to take the commit ts asynchronously afterwards, it is possible that after the client receives the success, it initiates another transaction to obtain the start ts, and then the commit ts is obtained asynchronously. Not satisfied 3 anymore. The solutions are as follows: after obtaining commit ts and returning success, then commit asynchronously.
+* After Prewrite succeeds, tidb hangs, and the transaction is successfully committed. How to determine commit ts? Of course, you can't get a new one directly from pd, it will not satisfy 3, and also negate the above solution 1, you need to have persistent information to determine the commit ts.
+
+Parallel Commit is considered to be a successful commit after Prewrite is successful. All prewrites form a barrier, and transactions after this must be able to see it, and transactions before this can not see it. How to guarantee this? You need tikv to maintain max start ts. At the same time, prewrite writes to the lock and returns to tidb. Use max(max start ts…) + 1 to submit. When resolve lock, you can recalculate commit ts.
+
+There is a very serious problem, prewrite takes time, resulting in the max start ts written by prewrite can not meet the requirements (violation of 1), only the max start ts after the write is successful.
+
+The essence of solving this type of problem is to postpone the operation that may cause errors until there are no errors. The solutions are:
+* The region records min commit ts, which is the smallest commit ts of the parallel commit transaction currently in progress. If the start ts of the read request is greater than min commit ts, it blocks until min commit ts is greater than start ts. That is, the read request that may have an error is blocked to ensure that there is no error before executing.
+* Method 1 The granularity is too large, which is the region level, and the range can be divided within the region. The finest granularity is the key level, which is the following method:
+  - The lock is written to memory first, then max start ts is obtained and then written to raftstore. When reading, first read the lock in the memory. After successfully writing to raftstore, the lock in mem is cleared, and the lock corresponding to the region is cleared when the leader switches.
+  - Use rocksdb as the storage medium for memory lock, first write to rocksdb, then write to raftstore. The implementation is also simple, and the effect is the same as a.
 
 ### Initiating resolve lock
 
+As touched upon in the commit timestamp section above, it is not clear how resolve lock should be initiated. There are two options:
+
+* TiKV resolves locks automatically.
+* TiKV returns to TiDB which instantiates resolve lock.
+
+The TiKV approach is faster, but it means we have to get a timestamp from PD and that a read might block for a long time. The TiDB approach takes a lot longer, but is more correct.
+
 ### Replica read
 
-TODO
+The above Commit Ts calculation does not consider the replica read situation, consider the following scenario:
+The leader's maxStartTs is 1, and parallel commit selects 1 + 1 = 2 as commitTs.
+The startTs of replica read is 3, and it should either see the lock or the data with commitTs of 2. However, due to log replication, replica read may fail to read the lock, which will destroy snapshot isolation.
+
+The solution is the same as prewrite solution 1:
+The read index request carries start ts. When region’s min commit ts < req’s start ts, it is necessary to wait for the min commit ts to exceed start ts before responding to the read index.
+
+
+### Change of leader
+
+The above structure is stored in the leader memory. Although there is no such information on the replica, it will interact with the leader, so it is easy to solve. How to solve the transfer leader? No need to solve, because the new leader must submit an entry for the current term to provide read and write services, so all the information in the previous memory will be submitted, and this part of the information is no longer needed.
+
+It should be noted that if the above scheme is adopted, this part of the memory information and pending requests must be processed when the leader changes.
+
 
 ### Blocking reads
 
@@ -89,6 +127,24 @@ TODO
 ## 1PC
 
 TODO
+
+## Possible optimisations
+
+There are restrictions on the size of the transaction. For example, if the key involved in the transaction is less than 64, parallel commit is used, or a hierarchical structure is adopted. The primary lock records a few secondary locks, and these secondary locks record other secondary locks respectively. It is easy to implement, just recursion, and the cost of failure recovery needs to be considered.
+
+Crdb mentioned two ways to reduce the impact of recovery, and TiDB has also implemented: one is to perform commit cleanup as soon as possible when committing; the second is transaction heartbeat to prevent cleanup of alive transactions.
+
+## Related Work
+
+### Cockroach DB
+
+crdb's transaction model is similar to TiDB in that both are inspired by percolator, but the crdb is a pessimistic transaction, every DML writes write intents, and they have many optimizations such as pipeline consensus write to reduce latency (which can also be used for pessimistic transactions). ), remain at 2PC until all write intents are written successfully on transaction commit. and update the transaction record (similar to primary key) to COMMITTED, and then returns success to the client after success.
+
+[crdb mentions an optimization in Parallel Commits](https://www.cockroachlabs.com/blog/parallel-commits/) that avoids the 2PC. The second stage has an effect on latency, similar to that of cross-region 1PC. The idea is simple: during the transaction commit phase, update the transaction record to STAGING state and record all the keys that the transaction will modify before waiting for the write The intents and transaction record are written successfully, and can then be returned to the The client succeeds, and crdb cleans up the commit asynchronously. Since the transaction record records all the keys in the firm, it is possible to use these keys as the basis for the Information to ensure atomic submission of transactions:
+
+* If all write intents in the STAGING state of the transaction record are written successfully, the transaction commits successfully.
+* If the transaction is not in STAGING or there is no transaction record or the write intents were not written successfully, the transaction commit fails.
+
 
 ## Resources
 
