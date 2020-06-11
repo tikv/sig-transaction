@@ -86,6 +86,7 @@ TODO
 TODO for each: why? implications, benefits
 
 * Timestamps are supplied by the client, TiKV does not get them directly from PD (exception: CDC).
+* All timestamps are unique.
 * Reads never fail (due to the transaction protocol, there might be network issues, etc. which cause failure).
   - A locking read in a pessimistic transaction may block.
   - A non-locking read will never block.
