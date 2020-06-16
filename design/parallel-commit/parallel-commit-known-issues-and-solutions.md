@@ -84,7 +84,7 @@ Another solution is ReadIndex carries read_ts and key range and treat it as norm
 
 Currently in write CF, we use `encode(user_key)+commit_ts` as the key to write in RocksDB. When a key is rolled back, it doesn't has a commit_ts, so its commit_ts will be simply set to start_ts. This is ok as long as the commit_ts is a globally-unique timestamp like start_ts of transactions. However, things are different when we start to calculate commit_ts rather than using a TSO as the commit_ts. The keys of rollbacks and commits in write CF may collide, but usually we need to keep both.
 
-We have multiple ways to solve the problem ([In this document](https://docs.google.com/document/d/1ofa9zYdb0-UmFu-uDHDLft2-G4s2SI2TJRErNRDH7O0/edit?usp=sharing)). Currently our preferred solution is the Solution 3 in the document above: Adding Rollback flag to Write records. When a Commit record and a Rollback record collides, we write the Commit record with a `has_rollback` flag to mark there is an overwritten rollback.
+We have multiple ways to solve the problem (See [globally-non-unique-timestamps.md](globally-non-unique-timestamps.md)). Currently our preferred solution is the Solution 3 in that document: adding Rollback flag to Write records. When a Commit record and a Rollback record collides, we write the Commit record with a `has_rollback` flag to mark there is an overwritten rollback.
 
 The drawback is that in this way CDC will be affected. We need to distinguish the two cases:
 

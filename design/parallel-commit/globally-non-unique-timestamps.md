@@ -22,6 +22,11 @@ In fact it would be simpler to simply disallow the locking in the above case, ju
 
 (Note: Now on a pessimistic lock, if the commit_ts of the existing commit record are the same as the current for_update_ts, then it is allowed to lock successfully)
 
+### commit-commit conflict
+
+It is possible two transactions have the same `commit_ts`. It's easy to imagine one transaction gets a `commit_ts` as `max(max_read_ts) + 1` and another gets that timestamp from PD. This is fine as long as the two transactions don't meet. If the two transactions try to write the same key, then there would be two competing values for any reads after that `commit_ts` (TiKV could not write both values into the write CF, but this is a technicality, the more fundamental problem is that there is no way for TiKV to judge which value is most recent).
+
+
 ## Problems with Write CF's Rollback logs
 
 The format of the Write CF key is {encoded_key}{commit_ts }, but it's different for Rollback-type records: a Rollback dropped transaction has no commit_ts, which has start_ts appended to the end of its key, so there could be something like this Phenomena.
@@ -59,3 +64,7 @@ The current preference is for the Rollback CF solution, as this would incidental
 * Problems with Rollback records and Lock records affecting query performance (if Lock-type Write records are also placed in the new CF).
 * collapse rollback Issues that affect the validity of pessimistic matters in extreme cases.
 * It's also part of the job to split write cf for latest and history.
+
+### Solution 5: max_ts
+
+Rather than maintaining `max_read_ts`, we maintain `max_ts` which is updated with every timestamp the TiKV node sees (i.e., every prewrite's `start_ts` and updated with every `commit_ts` when a transaction is committed).

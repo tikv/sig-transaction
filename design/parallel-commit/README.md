@@ -2,6 +2,8 @@
 
 This directory contains design documentation for parallel commit. Design is work-in-progress and implementation has not yet started.
 
+Implementation is tracked in a [TiKV project](https://github.com/tikv/tikv/projects/34).
+
 ## Overview
 
 The key idea is that we can return success to the user (from TiDB) when all prewrites have succeeded, because at that point we know that commit will not fail. By returning at this point we save a round trip between TiDB and TiKV which includes a consensus write of the commit.
@@ -27,7 +29,7 @@ For the primary key's lock, we store a list of keys in the transaction and their
 
 TODO multiple regions.
 
-### Phase 2: finalisation
+### Phase 2: finalisation (formerly commit)
 
 When the client has `response`s (not `ack`s) for every message in a transaction, it sends a single `finalise` message to the server. The client considers the transaction complete when it sends the `finalise` message, it does not need to wait for a response. The client obtains the commit ts from PD for the finalise message.
 

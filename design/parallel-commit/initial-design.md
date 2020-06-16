@@ -17,7 +17,35 @@ This document is focussed on the initial increments of work to implement a corre
 
 Please see [this doc](./parallel-commit-known-issues-and-solutions.md).
 
-## Protocol design
+## Implementation
+
+### TiDB
+
+* The user should opt-in to parallel commit; we assume the user has opted in for all nodes for the rest of this document.
+* Each prewrite response will include a `max_read_ts`, TiDB will select the largest `max_read_ts` and add one to make the `commit_ts` for the transaction.
+* TiDB can return success to the client before sending the commit message but after receiving success responses for all prewrite messages.
+* If an operation fails because it is locked, TiDB must query the primary lock to find a list of secondaries (a `CheckTxnStatus` request). It can then send a resolve lock request to each region. If all requests succeed, it can send the commit message as above. If any fail, then it should send roll back messages to each region.
+
+### TiKV
+
+* The information stored with each primary key lock should include all keys locked by the transaction and their status.
+* For each region, store in memory (note this general mechanism should be abstracted using a trait so it can be easily upgraded to per-key or other form of locking):
+  - A structure of `min_commit_ts`s, a map from each in-progress transaction to the minimum ts at which it may be committed.
+  - `max_read_ts`: the largest `start_ts` for any transactional read operation for the region (i.e., this value is potentially set on every read).
+  - When a TiKV node is started up or becomes leader, `max_read_ts` is initialised from PD with a new timestamp.
+  - When a prewrite is processed, TiKV records the current `max_read_ts` as the `min_commit_ts` for that transaction. `min_commit_ts` is recorded in each key's lock data structure.
+  - When a prewrite is finished, its entry is removed from the `min_commit_ts` structure. If the prewrite is successful, the `min_commit_ts` is returned to TiDB in the response.
+  - When a read is processed, first it sets the `max_read_ts`, then it checks its `start_ts` against the smallest `min_commit_ts` of any current transaction. It will block until its `start_ts > min(min_commit_ts)`
+* To handle a resolve lock request, TiKV checks each key in the request. If the status of every key is committed (c.f., proposed or rolled back), then it can send the largest of the `min_commit_ts`s for all keys back to TiDB. If any key is not committed, then all keys should be rolled back and a failure response sent to TiDB.
+
+### Handling non-unique timestamps
+
+See [parallel-commit-solution-ideas.md](parallel-commit-solution-ideas.md) for discussion.
+
+There is a possibility of two transactions having the same commit_ts, or of one transaction’s start_ts to be equal to the other’s commit_ts. We believe conflicts in the write CF between two commits are not possible. However, if one transaction's `start_ts` is another's `commit_ts` then rolling back the first transaction would collide with committing the second. We believe this isn't too serious an issue, but we will need to find a backwards compatible change to the write CF format. We do not know if there are problems due to non-unique timestamps besides the conflict in write CF.
+
+
+### Protobuf changes
 
 Prewrite requests need to notify TiKV that a transaction is using parallel commit
 
@@ -53,7 +81,33 @@ We also need to be able to clean up dead parallel commit transactions:
 
 ## First iteration
 
+* Use `Mutex<Timestamp>` for `max_read_ts`
+
 ## Evolution to long term solution
+
+The framework of parallel commit will be in place at the end of the first iteration. In a later iteration we should improve the temporary locking mechanism, See [parallel-commit-solution-ideas.md](parallel-commit-solution-ideas.md) for possible improvements.
+
+### Open questions
+
+* There is a problem if the commit_ts calculated during a resolve lock is > pd’s latest ts + 1, that is separate from the problem of non-unique timestamps (but has the same root cause).
+* Replica read.
+* Interaction with CDC.
+* Interaction with binlog.
+* Missing schema check.
+* Interaction with large transactions.
+* Heartbeats for keeping parallel commit transactions alive.
+
+### Refinements
+
+#### TiDB
+
+* TiDB should choose whether or not to use parallel commit based on the size of the transaction
+
+#### TiKV
+
+* Lock-free `max_read_ts` (if we keep a per-region value).
+
+## Testing
 
 ## Staffing
 
@@ -64,15 +118,16 @@ The following people are available for work on this project (as of 2020-06-15):
 * Nick (@nrc): approximately full time
 * Yilin (@sticnarf): ???
 * Fangsong (@longfangsong): approximately full time after apx one month (although work to be finalised)
-* Rui Xu (@cfzjywxk): ???
+* Rui Xu (@cfzjywxk): apx 1/3 initially
 
 RACI roles:
 
 * Responsible:
   - Nick
+  - Rui Xu
   - ???
 * Accountable: Shuaipeng
-* Consulted:
+* Consulted (expect this list to shrink):
   - Zhenjing
   - Zhaolei
   - Yilin
@@ -80,6 +135,6 @@ RACI roles:
   - Liu Wei
   - Liqi
   - Evan Zhou
-* Informed:
+* Informed (expect this list to grow):
   - #sig-transaction
   - this month in TiKV
