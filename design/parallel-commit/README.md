@@ -80,24 +80,29 @@ Possibly good ideas:
 * Use a hybrid logical clock (HLC) for timestamps. In this way we can enforce causal consistency rather than linearisability. In effect, the ordering of timestamps becomes partial and if the finalise message is lost then we cannot compare transaction 1's timestamps with transaction 2's timestamps without further resolution. Since this would require changing timestamps everywhere, it would be *a lot* of work. Its also not clear exactly how this would be implemented and how this would affect transaction 2. Seems like at the least, non-locking reads would block.
 
 
-In order to guarantee SI, commit ts need to satisfy:
-* It is larger than the start ts of all transactions that have not read the lock.
-* It can be larger or smaller than the transaction start ts that are executed at the same time and read the lock.
-* It is smaller than the start ts of subsequent transactions.
+In order to guarantee SI, `commit_ts` of T1 needs to satisfy:
+
+* It is larger than the `start_ts` of any other transaction which has read the old value of a key written by T1.
+* It is smaller than the `start_ts` of any other transaction which reads the new value of any key written by T1.
+
+Note that a transaction executing in parallel with T1 which reads a key written by T1 can have `start_ts` before or after T1's `commit_ts`.
 
 Consider all cases of Parallel Commit:
-* Normal execution process: After Prewrite is completed, it will be returned to the client response. If it is to take the commit ts asynchronously afterwards, it is possible that after the client receives the success, it initiates another transaction to obtain the start ts, and then the commit ts is obtained asynchronously. Not satisfied 3 anymore. The solutions are as follows: after obtaining commit ts and returning success, then commit asynchronously.
-* After Prewrite succeeds, tidb hangs, and the transaction is successfully committed. How to determine commit ts? Of course, you can't get a new one directly from pd, it will not satisfy 3, and also negate the above solution 1, you need to have persistent information to determine the commit ts.
 
-Parallel Commit is considered to be a successful commit after Prewrite is successful. All prewrites form a barrier, and transactions after this must be able to see it, and transactions before this can not see it. How to guarantee this? You need tikv to maintain max start ts. At the same time, prewrite writes to the lock and returns to tidb. Use max(max start ts…) + 1 to submit. When resolve lock, you can recalculate commit ts.
+* Normal execution process: After Prewrite is completed, TiKV will return a response to the client. If it is to take the `commit_ts` asynchronously afterwards, then the client could start a new transaction between the time of receiving the response and the time of TiKV getting a `commit_ts`. The new transaction would therefore read the old value of a key modified by the first transaction which violates RC. A solution is for TiKV to first obtain a timestamp and return that to the client as part of the prewrite response, then use that timestamp to commit.
+* After Prewrite succeeds, the client disappears, but the transaction is successfully committed. How to choose a `commit_ts`? A new timestamp from PD is not communicated to the client. Some timestamp must be persisted in TiKV.
 
-There is a very serious problem, prewrite takes time, resulting in the max start ts written by prewrite can not meet the requirements (violation of 1), only the max start ts after the write is successful.
+Parallel Commit is considered to be a successful commit after all prewrites are successful. Transactions after this must be able to see it, and transactions before this can not see it. How to guarantee this?
 
-The essence of solving this type of problem is to postpone the operation that may cause errors until there are no errors. The solutions are:
-* The region records min commit ts, which is the smallest commit ts of the parallel commit transaction currently in progress. If the start ts of the read request is greater than min commit ts, it blocks until min commit ts is greater than start ts. That is, the read request that may have an error is blocked to ensure that there is no error before executing.
-* Method 1 The granularity is too large, which is the region level, and the range can be divided within the region. The finest granularity is the key level, which is the following method:
-  - The lock is written to memory first, then max start ts is obtained and then written to raftstore. When reading, first read the lock in the memory. After successfully writing to raftstore, the lock in mem is cleared, and the lock corresponding to the region is cleared when the leader switches.
+A solution is for tikv to maintain a `max_start_ts`. When a prewrite writes its locks and returns to the client, use `max(max_start_ts for each key) + 1` to submit. If finalisation fails and a client resolves a lock, TiKV can recalculate `commit_ts`.
+
+The essence of solving this type of problem is to postpone operations that may cause errors until the operation is not an error. Two possible solutions are:
+
+* The region records `min_commit_ts`, which is the smallest `commit_ts` of a prewrite of any parallel commit transaction currently in progress (i.e., between prewrite and commit) may use. Every in-progress transaction must have a `commit_ts >= min_commit_ts`. For every read request to the region, if its `start_ts` is greater than `min_commit_ts`, the read request blocks until `min_commit_ts` is greater than `start_ts`.
+* The above can be refined by shrinking the granularity from a whole region level to a single key. Two implementation options:
+  - The lock is written to memory first, then `max_start_ts` is obtained and then written to raftstore. When reading, first read the lock in the memory. After successfully writing to raftstore, the lock in memory is cleared, and the lock corresponding to the region is cleared when the leader switches.
   - Use rocksdb as the storage medium for memory lock, first write to rocksdb, then write to raftstore. The implementation is also simple, and the effect is the same as a.
+
 
 ### Initiating resolve lock
 
