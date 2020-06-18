@@ -22,9 +22,9 @@ Please see [this doc](./parallel-commit-known-issues-and-solutions.md).
 ### TiDB
 
 * The user should opt-in to parallel commit; we assume the user has opted in for all nodes for the rest of this document.
-* Each prewrite response will include a `max_read_ts`, TiDB will select the largest `max_read_ts` and add one to make the `commit_ts` for the transaction.
+* Each prewrite response will include a `min_commit_ts`, TiDB will select the largest `min_commit_ts` as the final `commit_ts` for the transaction.
 * TiDB can return success to the client before sending the commit message but after receiving success responses for all prewrite messages.
-* If an operation fails because it is locked, TiDB must query the primary lock to find a list of secondaries (a `CheckTxnStatus` request). It can then send a resolve lock request to each region. If all requests succeed, it can send the commit message as above. If any fail, then it should send roll back messages to each region.
+* If an operation fails because it is locked, TiDB must query the primary lock to find a list of secondaries (a `CheckTxnStatus` request). It can then send a batch get request to each region to get all secondary locks and the `min_commit_ts` in the locks. If all locks are got, it can send the commit message as above. If any lock disappears, the primary key must have been committed or rolled back. Use `CheckTxnStatus` to get the updated information and resolve the locks.
 
 ### TiKV
 
@@ -33,14 +33,13 @@ Please see [this doc](./parallel-commit-known-issues-and-solutions.md).
   - A structure of `min_commit_ts`s, a map from each in-progress transaction to the minimum ts at which it may be committed.
   - `max_read_ts`: the largest `start_ts` for any transactional read operation for the region (i.e., this value is potentially set on every read).
   - When a TiKV node is started up or becomes leader, `max_read_ts` is initialised from PD with a new timestamp.
-  - When a prewrite is processed, TiKV records the current `max_read_ts` as the `min_commit_ts` for that transaction. `min_commit_ts` is recorded in each key's lock data structure.
+  - When a prewrite is processed, TiKV records the current `max_read_ts + 1` as the `min_commit_ts` for that transaction. `min_commit_ts` is recorded in each key's lock data structure.
   - When a prewrite is finished, its entry is removed from the `min_commit_ts` structure. If the prewrite is successful, the `min_commit_ts` is returned to TiDB in the response.
-  - When a read is processed, first it sets the `max_read_ts`, then it checks its `start_ts` against the smallest `min_commit_ts` of any current transaction. It will block until its `start_ts > min(min_commit_ts)`
-* To handle a resolve lock request, TiKV checks each key in the request. If the status of every key is committed (c.f., proposed or rolled back), then it can send the largest of the `min_commit_ts`s for all keys back to TiDB. If any key is not committed, then all keys should be rolled back and a failure response sent to TiDB.
+  - When a read is processed, first it sets the `max_read_ts`, then it checks its `start_ts` against the smallest `min_commit_ts` of any current transaction in the read range. It will block until its `start_ts >= min(min_commit_ts)`
 
 ### Handling non-unique timestamps
 
-See [parallel-commit-solution-ideas.md](parallel-commit-solution-ideas.md) for discussion.
+See [parallel-commit-known-issues-and-solutions.md](parallel-commit-known-issues-and-solutions.md) for discussion.
 
 There is a possibility of two transactions having the same commit_ts, or of one transaction’s start_ts to be equal to the other’s commit_ts. We believe conflicts in the write CF between two commits are not possible. However, if one transaction's `start_ts` is another's `commit_ts` then rolling back the first transaction would collide with committing the second. We believe this isn't too serious an issue, but we will need to find a backwards compatible change to the write CF format. We do not know if there are problems due to non-unique timestamps besides the conflict in write CF.
 

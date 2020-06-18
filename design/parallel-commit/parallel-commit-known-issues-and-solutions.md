@@ -111,6 +111,14 @@ When calculating `max_read_ts`, the `resolved_ts` of CDC must be also considered
 
 Since we must support calculating CommitTS to implement Parallel Commit, which seems to be totally not capable for tidb-binlog to support. If one want to use tidb-binlog, the only way is to disable Parallel Commit (and other optimizations that needs CommitTS calculation we do in the future), otherwise consider use CDC instead of tidb-binlog.
 
+## Affects to backup & restore
+
+If the maximum commit ts in the existing backup is `T`. An incremental backup dumps data with commit ts in (`T`, +inf).
+
+It is possible that a transaction commits with `T` after the previous backup. But the next incremental backup skips it.
+
+Note: If we are using `max_read_ts + 1` to commit instead of `max_ts + 1`, it's even possible that the commit ts is small than `T`, which is more troublesome.
+
 ## Schema Version Checking
 
 The existing 2pc process checks the schema version before issue the final commit command, if we do parallel commit, we don't have a chance to check the schema version. If it has changed, we may break the index/row consistency.
