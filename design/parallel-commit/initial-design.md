@@ -15,7 +15,7 @@ This document is focussed on the initial increments of work to implement a corre
 
 ## Known issues and solutions
 
-Please see [this doc](./parallel-commit-known-issues-and-solutions.md).
+Please see [this doc](parallel-commit-known-issues-and-solutions.md).
 
 ## Implementation
 
@@ -39,7 +39,7 @@ Please see [this doc](./parallel-commit-known-issues-and-solutions.md).
 
 ### Handling non-unique timestamps
 
-See [parallel-commit-known-issues-and-solutions.md](parallel-commit-known-issues-and-solutions.md) for discussion.
+See [parallel-commit-known-issues-and-solutions.md](globally-non-unique-timestamps.md) for discussion.
 
 There is a possibility of two transactions having the same commit_ts, or of one transaction’s start_ts to be equal to the other’s commit_ts. We believe conflicts in the write CF between two commits are not possible. However, if one transaction's `start_ts` is another's `commit_ts` then rolling back the first transaction would collide with committing the second. We believe this isn't too serious an issue, but we will need to find a backwards compatible change to the write CF format. We do not know if there are problems due to non-unique timestamps besides the conflict in write CF.
 
@@ -84,7 +84,7 @@ We also need to be able to clean up dead parallel commit transactions:
 
 ## Evolution to long term solution
 
-The framework of parallel commit will be in place at the end of the first iteration. In a later iteration we should improve the temporary locking mechanism, See [parallel-commit-solution-ideas.md](parallel-commit-solution-ideas.md) for possible improvements.
+The framework of parallel commit will be in place at the end of the first iteration. In a later iteration we should improve the temporary locking mechanism, See [parallel-commit-solution-ideas.md](parallel-commit-known-issues-and-solutions.md) for possible improvements.
 
 ### Open questions
 
