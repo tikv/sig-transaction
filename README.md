@@ -13,7 +13,7 @@ The SIG is in the process of starting up and currently does not have any officia
 
 ## How to get involved
 
-You can join us in #sig-transaction in the [TiKV community Slack](https://tikv.org/chat); come say hi! We use English or Chinese.
+You can join us in #sig-transaction in the [TiKV community Slack](https://slack.tidb.io/invite?team=tikv-wg&channel=sig-transaction&ref=community-sig); come say hi! We use English or Chinese.
 
 You can read or join our announcement [mailing list](https://groups.google.com/d/forum/tikv-sig-transaction), so you can stay up to date with what we're up to.
 
