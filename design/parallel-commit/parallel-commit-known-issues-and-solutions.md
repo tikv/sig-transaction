@@ -56,10 +56,11 @@ A prewrite of Parallel Commit transaction can get the `max_read_ts` first and th
 3. Atomically get the `max_read_ts` again as `T2`.
 4. Continue performing prewrite and persist `T2` to the locks written down to engine.
 
-### Some other ideas
+### Idea 5: Push start_ts of readers
 
-* Make something like HLC, which doesn't seem to be practical for us.
-* ...
+(nrc's understanding of CRDB solution).
+
+TODO
 
 ## Replica Read (By @gengliqi)
 

@@ -24,7 +24,7 @@ In fact it would be simpler to simply disallow the locking in the above case, ju
 
 ### commit-commit conflict
 
-It is possible two transactions have the same `commit_ts`. It's easy to imagine one transaction gets a `commit_ts` as `max(max_read_ts) + 1` and another gets that timestamp from PD. This is fine as long as the two transactions don't meet. If the two transactions try to write the same key, then there would be two competing values for any reads after that `commit_ts` (TiKV could not write both values into the write CF, but this is a technicality, the more fundamental problem is that there is no way for TiKV to judge which value is most recent).
+It is possible two transactions have the same `commit_ts`. It's easy to imagine one transaction gets a `commit_ts` as `max(max_read_ts) + 1` and another gets that timestamp from PD. This is fine as long as the two transactions don't meet. If the two transactions try to write the same key, then there would be two competing values for any reads after that `commit_ts` (TiKV could not write both values into the write CF, but this is a technicality, the more fundamental problem is that there is no way for TiKV to judge which value is most recent). However, due to locking this cannot occur (depending on how the non-unique timestamps occur, it also might not be possible to create such a situation).
 
 
 ## Problems with Write CF's Rollback logs
@@ -43,7 +43,7 @@ At TiKV's transaction level, before writing a rollback, it is checked whether th
 Disadvantages:
 
 * Rollback requires an additional read operation, potentially causing a performance regression.
-* Unable to block requests for pessimistic transactions that arrive late. This situation, once it arises on the primary key of a pessimistic transaction, may cause the pessimistic transaction to be correct. Impact.
+* Unable to block requests for pessimistic transactions that arrive late. This situation, once it arises on the primary key of a pessimistic transaction, may cause the pessimistic transaction to be correct. Impact. I think this can be addressed by treating a write with the same commit ts but different start ts as a rollback.
 
 ### Solution 2: Rollback CF
 
@@ -68,3 +68,19 @@ The current preference is for the Rollback CF solution, as this would incidental
 ### Solution 5: max_ts
 
 Rather than maintaining `max_read_ts`, we maintain `max_ts` which is updated with every timestamp the TiKV node sees (i.e., every prewrite's `start_ts` and updated with every `commit_ts` when a transaction is committed).
+
+### Solution 6: Extend the timestamp format
+
+New timestamps are 128 bits. The first 64 are a local timestamp, the remaining 64 contain a specification version number for forward compatibility and a node identifier to identify the node that generated the timestamp. PD has the unique node id `0`. Old timestamps are considered equivalent to a new timestamp with `0` node id.
+
+Each node maintains a local timestamp counter in the manner of a Lamport Clock. This value is sent to other nodes including PD with every message (or most messages). The ordering of the local timestamp only has the property that if event `a` observably precedes event `b`, then `ts(a) < ts(b)`. However, local timestamps are not globally unique and the inverse of the previous property is not true. Two timestamps with the same node id do provide the inverse property and all timestamps with the same node id gives a linear total order.
+
+The entire timestamp is globally unique and gives a total ordering over timestamps. However, it is not linear in that it does not strictly match the ordering due to real time.
+
+This solution easily solves the issue of write and rollback entries in the write CF. It also improves efficiency since to get a new timestamp, a node does not need to send a message to PD, it can use its local 'clock'.
+
+However, it means we lose strict linearizability because the order of writes may not exactly match their real time ordering.
+
+This solution is amenable to configuration, since if the node id is always 0, then we have the same properties as we do currently.
+
+TODO - how does this interact with tools which require unique timestamps?
