@@ -56,10 +56,11 @@ A prewrite of Parallel Commit transaction can get the `max_read_ts` first and th
 3. Atomically get the `max_read_ts` again as `T2`.
 4. Continue performing prewrite and persist `T2` to the locks written down to engine.
 
-### Some other ideas
+### Idea 5: Push start_ts of readers
 
-* Make something like HLC, which doesn't seem to be practical for us.
-* ...
+(nrc's understanding of CRDB solution).
+
+TODO
 
 ## Replica Read (By @gengliqi)
 
@@ -84,7 +85,7 @@ Another solution is ReadIndex carries read_ts and key range and treat it as norm
 
 Currently in write CF, we use `encode(user_key)+commit_ts` as the key to write in RocksDB. When a key is rolled back, it doesn't has a commit_ts, so its commit_ts will be simply set to start_ts. This is ok as long as the commit_ts is a globally-unique timestamp like start_ts of transactions. However, things are different when we start to calculate commit_ts rather than using a TSO as the commit_ts. The keys of rollbacks and commits in write CF may collide, but usually we need to keep both.
 
-We have multiple ways to solve the problem ([In this document](https://docs.google.com/document/d/1ofa9zYdb0-UmFu-uDHDLft2-G4s2SI2TJRErNRDH7O0/edit?usp=sharing)). Currently our preferred solution is the Solution 3 in the document above: Adding Rollback flag to Write records. When a Commit record and a Rollback record collides, we write the Commit record with a `has_rollback` flag to mark there is an overwritten rollback.
+We have multiple ways to solve the problem (See [globally-non-unique-timestamps.md](globally-non-unique-timestamps.md)). Currently our preferred solution is the Solution 3 in that document: adding Rollback flag to Write records. When a Commit record and a Rollback record collides, we write the Commit record with a `has_rollback` flag to mark there is an overwritten rollback.
 
 The drawback is that in this way CDC will be affected. We need to distinguish the two cases:
 
@@ -110,6 +111,14 @@ When calculating `max_read_ts`, the `resolved_ts` of CDC must be also considered
 ## Affects to tidb-binlog
 
 Since we must support calculating CommitTS to implement Parallel Commit, which seems to be totally not capable for tidb-binlog to support. If one want to use tidb-binlog, the only way is to disable Parallel Commit (and other optimizations that needs CommitTS calculation we do in the future), otherwise consider use CDC instead of tidb-binlog.
+
+## Affects to backup & restore
+
+If the maximum commit ts in the existing backup is `T`. An incremental backup dumps data with commit ts in (`T`, +inf).
+
+It is possible that a transaction commits with `T` after the previous backup. But the next incremental backup skips it.
+
+Note: If we are using `max_read_ts + 1` to commit instead of `max_ts + 1`, it's even possible that the commit ts is small than `T`, which is more troublesome.
 
 ## Schema Version Checking
 

@@ -2,14 +2,19 @@
 
 This directory contains design documentation for parallel commit. Design is work-in-progress and implementation has not yet started.
 
+Implementation is tracked in a [TiKV project](https://github.com/tikv/tikv/projects/34).
+
 ## Overview
 
 The key idea is that we can return success to the user (from TiDB) when all prewrites have succeeded, because at that point we know that commit will not fail. By returning at this point we save a round trip between TiDB and TiKV which includes a consensus write of the commit.
 
 This modification is sound because the source of truth for whether a transaction is committed is considered to be distributed among all locks.
 
+The main difficulty is in choosing a timestamp for the commit ts of the transaction.
 
 ## Protocol
+
+This section is a little out of date, refer to [initial-design.md](initial-design.md) for a more up to date version.
 
 ### Phase 1: reads and writes
 
@@ -27,7 +32,7 @@ For the primary key's lock, we store a list of keys in the transaction and their
 
 TODO multiple regions.
 
-### Phase 2: finalisation
+### Phase 2: finalisation (formerly commit)
 
 When the client has `response`s (not `ack`s) for every message in a transaction, it sends a single `finalise` message to the server. The client considers the transaction complete when it sends the `finalise` message, it does not need to wait for a response. The client obtains the commit ts from PD for the finalise message.
 
@@ -60,9 +65,11 @@ TODO partial rollback with for_update_ts
 
 ## Issues
 
-See also [parallel-commit-solution-ideas.md](parallel-commit-solution-ideas.md).
+See also [parallel-commit-known-issues-and-solutions.md](parallel-commit-known-issues-and-solutions.md).
 
 ### Commit timestamp
+
+See [parallel-commit-known-issues-and-solutions.md](globally-non-unique-timestamps.md) for discussion.
 
 In the happy path, there is no problem. However, if the finalise message is lost then when we resolve the lock and the transaction needs committing, then we need to provide a commit timestamp. Unfortunately it seems there is no good answer for what ts to use.
 
