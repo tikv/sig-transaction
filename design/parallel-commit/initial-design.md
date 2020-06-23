@@ -41,8 +41,7 @@ Prewrite requests need to notify TiKV that a transaction is using parallel commi
 ```diff
   message PrewriteRequest {
       // ...
-+     bool use_parallel_commit = ...;
-+     repeated bytes secondaries = ...;
++     repeated bytes secondary_keys = ...;
   }
 ```
 
@@ -63,8 +62,7 @@ We also need to be able to clean up dead parallel commit transactions:
 ```diff
   message CheckTxnStatusResponse {
       // ...
-+     bool use_parallel_commit = ...;
-+     repeated bytes secondaries = ...;
++     repeated bytes secondary_keys = ...;
   }
 ```
 
