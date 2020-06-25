@@ -22,7 +22,9 @@ We will have formal membership of the group ready later in the year.
 
 ## Repository contents
 
-Coming soon...
+* [People](people.md) in the SIG
+
+Coming soon:
 
 * Resources for learning about distributed transactions,
 * notes from reading group discussions,
@@ -38,9 +40,9 @@ We look forward to welcoming new members soon. For now, we do not have formal me
 
 If you have questions about the SIG or transactions in TiKV, please get in touch with either of us!
 
-* Shuaipeng 'Jack' Yu, 于帅鹏 [@jackysp](https://github.com/jackysp),
-* Nick Cameron [@nrc](https://github.com/nrc).
-
+* Shuaipeng 'Jack' Yu, 于帅鹏, [@jackysp](https://github.com/jackysp),
+* Nick Cameron, [@nrc](https://github.com/nrc).
+* Andy Lok, 骆迪安, [@andylokandy](https://github.com/andylokandy)
 
 ## Links
 
