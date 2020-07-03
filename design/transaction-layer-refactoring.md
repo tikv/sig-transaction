@@ -81,10 +81,10 @@ Moreover, long code paths and jumps are avoided. It's never a problem that depen
 
 Both the latch and the lock manager stores memory locks and notify when the locks are released. For "parallel commit", we also need another memory locking mechanism. It'll be good to have an integrated locking mechanism handling all these requirements.
 
-We can use a concurrent ordered map to build a lock table. We map each raw key to a memory lock. The memory lock contains lock information and waiting lists. Currently we have two kinds of orthogonal waiting list: the latch waiting list and the pessimistic lock waiting list. 
+We can use a concurrent ordered map to build a lock table. We map each encoded key to a memory lock. The memory lock contains lock information and waiting lists. Currently we have two kinds of orthogonal waiting list: the latch waiting list and the pessimistic lock waiting list. 
 
 ```rust
-pub type LockTable = ConcurrentOrderedMap<Vec<u8>, Arc<MemoryLock>>;
+pub type LockTable = ConcurrentOrderedMap<Key, Arc<MemoryLock>>;
 
 pub struct MemoryLock {
     mutex_state: AtomicU64,
@@ -124,7 +124,7 @@ async fn get(&self, req: GetRequest) -> GetResponse {
     ...
 }
 
-fn read_check_key(&self, key: &[u8], ts: TimeStamp) -> Result<(), LockInfo> {
+fn read_check_key(&self, key: &Key, ts: TimeStamp) -> Result<(), LockInfo> {
     self.update_max_read_ts(ts);
     if let Some(lock) = self.lock_table.get(key) {
         let lock_info = lock.lock_info.lock().unwrap();
@@ -135,7 +135,7 @@ fn read_check_key(&self, key: &[u8], ts: TimeStamp) -> Result<(), LockInfo> {
     Ok(())
 }
 
-fn read_check_range(&self, start_key: &[u8], end_key: &[u8], ts: TimeStamp) -> Result<(), LockInfo> {
+fn read_check_range(&self, start_key: &Key, end_key: &Key, ts: TimeStamp) -> Result<(), LockInfo> {
     self.update_max_read_ts(ts);
     if let Some((key, lock)) = self.lock_table.lower_bound(start_key) {
         if key < end_key {
