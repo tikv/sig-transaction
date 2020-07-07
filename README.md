@@ -34,13 +34,12 @@ Coming soon:
 
 ## People
 
-We look forward to welcoming new members soon. For now, we do not have formal members other than the SIG's leaders.
+See [people.md](people.md). If you want to mention us in an issue, PR, or comment, use @tikv/sig-txn.
 
 ### Leaders
 
 If you have questions about the SIG or transactions in TiKV, please get in touch with either of us!
 
-* Shuaipeng 'Jack' Yu, 于帅鹏, [@jackysp](https://github.com/jackysp),
 * Nick Cameron, [@nrc](https://github.com/nrc).
 * Andy Lok, 骆迪安, [@andylokandy](https://github.com/andylokandy)
 
