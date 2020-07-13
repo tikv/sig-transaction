@@ -54,7 +54,7 @@ We'll try to read the local buffered key first. And if the local buffered key do
 
 You may have known that TiKV divide all the data into different regions, and each replica of some certain region is on its own TiKV node, and pd will manage the meta infomation about where are the replicas for some certain key is.
 
-The code above seems doesn't cover the steps which decide which TiKV node should we send the request to. But that's not ture. The code which do these jobs is hidden under [`execute`](https://github.com/tikv/client-rust/blob/b7ced1f44ed9ece4405eee6d2573a6ca6fa46379/src/request.rs#L33), and you'll find the the code which tries to get the TiKV node [here](https://github.com/tikv/client-rust/blob/b7ced1f44ed9ece4405eee6d2573a6ca6fa46379/src/pd/client.rs#L42) , and it is called by `retry_response_stream` [here](https://github.com/tikv/client-rust/blob/b7ced1f44ed9ece4405eee6d2573a6ca6fa46379/src/request.rs#L52):
+The code above seems doesn't cover the steps which decide which TiKV node should we send the request to. But that's not ture. The code which do these jobs is hidden under [`execute`](https://github.com/tikv/client-rust/blob/b7ced1f44ed9ece4405eee6d2573a6ca6fa46379/src/request.rs#L33), and you'll find the code which tries to get the TiKV node [here](https://github.com/tikv/client-rust/blob/b7ced1f44ed9ece4405eee6d2573a6ca6fa46379/src/pd/client.rs#L42) , and it is called by `retry_response_stream` [here](https://github.com/tikv/client-rust/blob/b7ced1f44ed9ece4405eee6d2573a6ca6fa46379/src/request.rs#L52):
 
 ```rust, no_code
 fn store_for_key(
@@ -174,75 +174,15 @@ Now we have the value in `GetResponse`, but the client still need to resolve the
 
 First, we'll use `take_locks` to take the locks we met, and then we'll use `resolve_locks` to try to resolve them:
 
-```rust, no_run
-pub async fn resolve_locks(
-    locks: Vec<kvrpcpb::LockInfo>,
-    pd_client: Arc<impl PdClient>,
-) -> Result<bool> {
-    let ts = pd_client.clone().get_timestamp().await?;
-    let mut has_live_locks = false;
-    let expired_locks = locks.into_iter().filter(|lock| {
-        let expired = ts.physical - Timestamp::from_version(lock.lock_version).physical
-            >= lock.lock_ttl as i64;
-        if !expired {
-            has_live_locks = true;
-        }
-        expired
-    });
+We find all the locks which are expired, and resolve them one by one. 
 
-    // records the commit version of each primary lock (representing the status of the transaction)
-    let mut commit_versions: HashMap<u64, u64> = HashMap::new();
-    let mut clean_regions: HashMap<u64, HashSet<RegionVerId>> = HashMap::new();
-    for lock in expired_locks {
-        let primary_key: Key = lock.primary_lock.into();
-        let region_ver_id = pd_client.region_for_key(&primary_key).await?.ver_id();
-        // skip if the region is cleaned
-        if clean_regions
-            .get(&lock.lock_version)
-            .map(|regions| regions.contains(&region_ver_id))
-            .unwrap_or(false)
-        {
-            continue;
-        }
-
-        let commit_version = match commit_versions.get(&lock.lock_version) {
-            Some(&commit_version) => commit_version,
-            None => {
-                let commit_version = requests::new_cleanup_request(primary_key, lock.lock_version)
-                    .execute(pd_client.clone())
-                    .await?;
-                commit_versions.insert(lock.lock_version, commit_version);
-                commit_version
-            }
-        };
-
-        let cleaned_region = resolve_lock_with_retry(
-            lock.key.into(),
-            lock.lock_version,
-            commit_version,
-            pd_client.clone(),
-        )
-        .await?;
-        clean_regions
-            .entry(lock.lock_version)
-            .or_insert_with(HashSet::new)
-            .insert(cleaned_region);
-    }
-    Ok(!has_live_locks)
-}
-```
-
-First we find all the locks which are expired, and resolve them one by one. 
-
-Then we'll get `lock_version`'s corresponding `commit_version` (might be bufferd), and use it to send `cleanup_request`.
+Then we'll get `lock_version`'s corresponding `commit_version` (might be buffered), and use it to send `cleanup_request`.
 
 It seems that `Cleanup` is deprecated after 4.0 , then we'll simply igonre it.
 
 And then it is the key point: [`resolve_lock_with_retry`](https://github.com/tikv/client-rust/blob/9d1256fba6b2eb0bf8b07f2c92573011e985925c/src/transaction/lock.rs#L75), this function will construct a  `ResolveLockRequest`, and send it to TiKV to execute.
 
-Let's turn to TiKV's source code, you'll find out that this request will be casted into a `TypedCommand`, and be executed by `sched_txn_command`.
-
-According to whether the `key` on the request is empty, `ResolveLockRequest` will be casted into `ResolveLock` or `ResolveLockLite`. The difference between those two is that `ResolveLockLite` will only handle the locks `Request` ask for resolve, while `ResolveLock` will handle a whole region.
+Let's turn to TiKV's source code, according to whether the `key` on the request is empty, `ResolveLockRequest` will be casted into `ResolveLock` or `ResolveLockLite`. The difference between those two is that `ResolveLockLite` will only handle the locks `Request` ask for resolve, while `ResolveLock` will resolve locks in a whole region.
 
 It is really hard to find where the `ResolveLock` command is handled. It took me a long time to find out that it has 2 parts: One is [here](https://github.com/TiKV/TiKV/blob/82d180d120e115e69512ea7f944e93e6dc5022a0/src/storage/txn/process.rs#L416), which is resposible for read out the locks, and the other is [here](https://github.com/TiKV/TiKV/blob/82d180d120e115e69512ea7f944e93e6dc5022a0/src/storage/txn/process.rs#L775), which is responsible for the release work.
 
@@ -260,16 +200,146 @@ Let's summerize the process with a dataflow diagram.
 
 ### Scan
 
-(WIP)
+On the client side, scan is almost the same as single point get get, except that it sends a [`KvScan`](https://github.com/pingcap/kvproto/blob/d4aeb467de2904c19a20a12de47c25213b759da1/proto/tikvpb.proto#L22) grpc call instead of `KvGet`.
+
+And on the TiKV side, things are a little different, firstly, the request will be handled by [`future_scan`](https://github.com/tikv/tikv/blob/1de029631e09a3f9989a468a9cb4b97ec4db440e/src/server/service/kv.rs#L1235), and then [`Storage::scan`](https://github.com/tikv/tikv/blob/ba2747f7903b393e708b1f10e38f4a47472fcede/src/storage/mod.rs#L443)，and finally we'll find out the function which really do the job is a [`Scanner`](https://github.com/tikv/tikv/blob/9f61ff4dd19265936d7d493186a9bf8f0b72e616/src/storage/mvcc/reader/scanner/mod.rs#L167), and we'll cover this part in another document. 
 
 ### Write
 
-(WIP)
+In fact, write just write to local buffer. All data modifications will be sent to TiKV on commit.
 
 ### Commit
 
-(WIP)
+Now comes the most interesting part: commit, just like what I mentioned, commit in TiKV is based on [Percolator](https://research.google/pubs/pub36726/), but there are several things that are different:
+
+- [Percolator](https://research.google/pubs/pub36726/) depends on BigTable's single row transaction, which must be implemented by ourselves in TiKV.
+- We need to support pessimistic transaction.
+  - This introduce some other problems such as dead lock.
+
+So let's see how TiKV deal with these things.
+
+#### Client
+
+From the client side, the commit process is easy, you can see we use a [`TwoPhaseCommitter`](https://github.com/tikv/client-rust/blob/fe765f191115d5ca0eb05275e45e086c2276c2ed/src/transaction/transaction.rs#L249) to do the commit job, and what it does is just as the [Percolator](https://research.google/pubs/pub36726/) paper says: [`prewrite`](https://github.com/tikv/client-rust/blob/fe765f191115d5ca0eb05275e45e086c2276c2ed/src/transaction/transaction.rs#L278), [`commit_primary`](https://github.com/tikv/client-rust/blob/fe765f191115d5ca0eb05275e45e086c2276c2ed/src/transaction/transaction.rs#L293) and finally [`commit_secondary`](https://github.com/tikv/client-rust/blob/fe765f191115d5ca0eb05275e45e086c2276c2ed/src/transaction/transaction.rs#L310).
+
+#### AcquirePessimisticLock
+
+This one does not exists in client-rust for now, so you have to read TiDB's code [here](https://github.com/pingcap/tidb/blob/3748eb920300bd4bc0917ce852a14d90e8e0fafa/store/tikv/pessimistic.go#L58).
+
+Basically, it sends a `PessimisticLockRequest` to TiKV, and TiKV will handle it [here](https://github.com/tikv/tikv/blob/4a75902f266fbbc064f0c19a2a681cfe66511bc3/src/storage/txn/process.rs#L668), it just run `MvccTxn::acquire_pessimistic_lock` for each key to lock, which just put a lock on the key, the lock is just like the lock used in prewrite in optimistic transaction, the only differece is its type is `LockType::Pessimistic`.
+
+And the it returns whether the lock is successful. According to the design, some code should be used to retry when the key is found to be locked, it might be in the wait manager,but I cannot find the exact function which do this.
+
+#### Prewrite
+
+On TiKV side, the prewrite process happens [here in `process_write_impl`](https://github.com/tikv/tikv/blob/4a75902f266fbbc064f0c19a2a681cfe66511bc3/src/storage/txn/process.rs#L557).
+
+The first few lines of code (`if rows > FORWARD_MIN_MUTATIONS_NUM` part) is not covered by the [`TiKV Source Code Reading blogs`](https://pingcap.com/blog-cn/tikv-source-code-reading-12/). I guess it means:
+
+```
+if there's no "write" record in [mutations.minKey, mutation.maxKey] {
+	skip_constraint_check = true;
+  scan_mode = Some(ScanMode::Forward)
+}
+```
+
+As far as I understand, it just provides a optimized way of checking the "write" column (In fact I'm not sure whether my understanding is right).
+
+And no matter whether this branch is taken, we'll construct a `MvccTxn` , and then use it to do the prewrite job for each mutation the client sent to the TiKV server.
+
+The [`MvccTxn::prewrite`](https://github.com/tikv/tikv/blob/4a75902f266fbbc064f0c19a2a681cfe66511bc3/src/storage/mvcc/txn.rs#L563) function just do what the [Percolator](https://research.google/pubs/pub36726/) describes: check the `write` record in `[start_ts, ∞]` to find a newer write (this can be bypassed if `skip_constraint_check` is set, we can ignore this check safely in situations like import data). And then check whether the current key is locked at any timestamp. And finally use [`prewrite_key_value`](https://github.com/tikv/tikv/blob/4a75902f266fbbc064f0c19a2a681cfe66511bc3/src/storage/mvcc/txn.rs#L194) to lock the key and write the value in.
+
+##### Latches
+
+Just as I mentioned, there's no such things like "single row transaction" in TiKV, so we need another way to prevent the key's locking state changed by another transaction during `prewrite`.
+
+TiKV use [`Latches`](https://github.com/tikv/tikv/blob/4a75902f266fbbc064f0c19a2a681cfe66511bc3/src/storage/txn/latch.rs#L125) to archieve this, you can consider it as a Map from key('s hashcode) to mutexes. You can lock a key in the `Latches` to prevent it be used by other transactions.
+
+The latches is used in [`try_to_wake_up`](https://github.com/tikv/tikv/blob/4a75902f266fbbc064f0c19a2a681cfe66511bc3/src/storage/txn/scheduler.rs#L380) , this is called before each command is executed.
+
+#### PrewritePessimistic
+
+[`PrewritePessimistic`'s handling](https://github.com/tikv/tikv/blob/3a4a0c98f9efc2b409add8cb6ac9e8886bb5730c/src/storage/txn/process.rs#L624) is very similiar to `Prewrite`, except it:
+
+- doesn't need to read the write record for checking conflict
+- downgrade to optimistic lock after prewrite
+- needs to prevent deadlock
+
+##### Dead lock handling
+
+TiKV use deadlock detection to prevent deadlock.
+
+The deadlock detector is made up with two parts: the [`LockManager`](https://github.com/tikv/tikv/blob/3a4a0c98f9efc2b409add8cb6ac9e8886bb5730c/src/server/lock_manager/mod.rs#L49) and the [`Detector`](https://github.com/tikv/tikv/blob/3a4a0c98f9efc2b409add8cb6ac9e8886bb5730c/src/server/lock_manager/deadlock.rs#L467).
+
+Basically, these two make a *Directed acyclic graph* with the transactions and the locks it require, if adding a node may break the "acyclic" rule, then a potential deadlock is detected.
+
+#### (Do) Commit
+
+After `prewrite` is done, the client will do the commit works: first commit the primary key, then the secondary ones, both these two kind of keys' commit are represented by the `Commit` command and handled [here](https://github.com/tikv/tikv/blob/3a4a0c98f9efc2b409add8cb6ac9e8886bb5730c/src/storage/txn/process.rs#L729). 
+
+The commit process is much like [Percolator](https://research.google/pubs/pub36726/) describes, we just use [`MvccTxn::commit`](https://github.com/tikv/tikv/blob/17e75b6d1d1a8f1fb419f8be249bc684b3defbdb/src/storage/mvcc/txn.rs#L645) to commit each key.
+
+We also collect the released locks and use it to [wake up the waiting pessimistic transactions](https://github.com/tikv/tikv/blob/17e75b6d1d1a8f1fb419f8be249bc684b3defbdb/src/storage/txn/process.rs#L513).
 
 ### Rollback
 
-(WIP)
+#### (Optimistic) Rollback
+
+##### client
+
+[rollback](https://github.com/tikv/client-rust/blob/fe765f191115d5ca0eb05275e45e086c2276c2ed/src/transaction/transaction.rs#L327) just construct a `BatchRollbackRequest` and send it to server.
+
+##### server
+
+It just call [`MvccTxn::rollback`](https://github.com/tikv/tikv/blob/1709de63b3b66f474ff757133a8a1076cf77f196/src/storage/mvcc/txn.rs#L732) [here](https://github.com/tikv/tikv/blob/1709de63b3b66f474ff757133a8a1076cf77f196/src/storage/txn/process.rs#L778), and [`MvccTxn::rollback`](https://github.com/tikv/tikv/blob/1709de63b3b66f474ff757133a8a1076cf77f196/src/storage/mvcc/txn.rs#L732) is a direct proxy to [`MvccTxn::cleanup`](https://github.com/tikv/tikv/blob/1709de63b3b66f474ff757133a8a1076cf77f196/src/storage/mvcc/txn.rs#L795).
+
+(BTW, I found the comment [here](https://github.com/tikv/tikv/blob/1709de63b3b66f474ff757133a8a1076cf77f196/src/storage/mvcc/txn.rs#L793) misleading)
+
+Let's view the code in [`MvccTxn::cleanup`](https://github.com/tikv/tikv/blob/1709de63b3b66f474ff757133a8a1076cf77f196/src/storage/mvcc/txn.rs#L795):
+
+The first branch in the `match` is taken when there's a lock on the key.
+
+`!current_ts.is_zero()` is always false in the rollback situation, so we'll ignore it here.
+
+Then we'll call [`MvccTxn::rollback_lock`](https://github.com/tikv/tikv/blob/1709de63b3b66f474ff757133a8a1076cf77f196/src/storage/mvcc/txn.rs#L229):
+
+First remove the value written if necessary:
+
+```rust
+if lock.short_value.is_none() && lock.lock_type == LockType::Put {
+	self.delete_value(key.clone(), lock.ts);
+}
+```
+
+And then put the write record.
+
+```rust
+let protected: bool = is_pessimistic_txn && key.is_encoded_from(&lock.primary);
+let write = Write::new_rollback(self.start_ts, protected);
+self.put_write(key.clone(), self.start_ts, write.as_ref().to_bytes());
+```
+
+And then collapse the prev rollback if necessary:
+
+```rust
+if self.collapse_rollback {
+	self.collapse_prev_rollback(key.clone())?;
+}
+```
+
+Finally unlock the key:
+
+```rust
+Ok(self.unlock_key(key, is_pessimistic_txn))
+```
+
+Then come back to  [`MvccTxn::cleanup`](https://github.com/tikv/tikv/blob/1709de63b3b66f474ff757133a8a1076cf77f196/src/storage/mvcc/txn.rs#L795), when there's no lock on the key:
+
+First we'll use [`check_txn_status_missing_lock`](https://github.com/tikv/tikv/blob/1709de63b3b66f474ff757133a8a1076cf77f196/src/storage/mvcc/txn.rs#L745) to decide the status of the transaction, if the transaction is already commit, return an error, else it is ok.
+
+#### Pessimistic Rollback
+
+The only difference between the handling of `PessimisticRollback` and `Rollback` is `PessimisticRollback` use [`MvccTxn::pessimistic_rollback`](https://github.com/tikv/tikv/blob/1709de63b3b66f474ff757133a8a1076cf77f196/src/storage/mvcc/txn.rs#L842) here.
+
+And the only job [`MvccTxn::pessimistic_rollback`](https://github.com/tikv/tikv/blob/1709de63b3b66f474ff757133a8a1076cf77f196/src/storage/mvcc/txn.rs#L842) is to remove the lock the transaction put on the key.
+
