@@ -6,10 +6,6 @@ The definitive membership list is kept in the [TiKV community](https://github.co
 
 All Slack usernames are for the [TiKV community Slack](https://slack.tidb.io/invite?team=tikv-wg&channel=sig-transaction&ref=community-sig).
 
-### 于帅鹏 Jack Yu (tech lead)
-
-- GitHub: [@jackysp](https://github.com/jackysp)
-- Slack: Jack Yu
 
 ### Nick Cameron (tech lead)
 
@@ -22,6 +18,11 @@ All Slack usernames are for the [TiKV community Slack](https://slack.tidb.io/inv
 
 - GitHub: [@andylokandy](https://github.com/andylokandy)
 - Slack: andylokandy
+
+### 于帅鹏 Jack Yu (committer)
+
+- GitHub: [@jackysp](https://github.com/jackysp)
+- Slack: Jack Yu
 
 ### 周振靖 Joe Zhou (committer)
 
@@ -66,3 +67,13 @@ All Slack usernames are for the [TiKV community Slack](https://slack.tidb.io/inv
 
 - GitHub: [@sticnarf](https://github.com/sticnarf)
 - Slack: Yilin Chen
+
+### Norbert Long
+
+- GitHub: [@longfangsong](https://github.com/longfangsong)
+- Slack: longfangsong
+
+### Ziqian Qin
+
+- GitHub: [@ekexium](https://github.com/ekexium)
+- Slack: Ziqian Qin

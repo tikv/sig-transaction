@@ -17,12 +17,12 @@ You can join us in #sig-transaction in the [TiKV community Slack](https://slack.
 
 You can read or join our announcement [mailing list](https://groups.google.com/d/forum/tikv-sig-transaction), so you can stay up to date with what we're up to.
 
-We will have formal membership of the group ready later in the year.
+If you would like to join the SIG or have any questions about it, please email sig-txn@tikv.dev.
 
 
 ## Repository contents
 
-* [People](people.md) in the SIG
+* [People](people.md) in the SIG.
 
 Coming soon:
 
