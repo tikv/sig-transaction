@@ -1,6 +1,8 @@
-# Parallel Commit (initial design)
+# Async Commit (initial design)
 
-This document is focussed on the initial increments of work to implement a correct, but non-performant version of parallel commit.
+This document is focussed on the initial increments of work to implement a correct, but non-performant version of async commit.
+
+Implementation is tracked in [issue 36](https://github.com/tikv/sig-transaction/issues/36).
 
 ## Goals
 
@@ -11,7 +13,10 @@ This document is focussed on the initial increments of work to implement a corre
 
 * Preserve existing SI, linearizability, and RC properties of transactions.
 * TiDB can report success to the user after all prewrites succeed; before sending further messages to TiKV.
-* Backwards compatible (to be specified).
+* Backwards compatible
+  - Existing data should still be usable (including transient data such as locks)
+  - We can assume that all TiKV nodes will be updated before any TiDB nodes (and before async commit is enabled)
+  - Old and new TiKV nodes may exist in the same cluster
 
 ## Known issues and solutions
 
@@ -24,49 +29,20 @@ Please see [this doc](parallel-commit-known-issues-and-solutions.md).
 * The user should opt-in to parallel commit; we assume the user has opted in for all nodes for the rest of this document.
 * Each prewrite response will include a `min_commit_ts`, TiDB will select the largest `min_commit_ts` as the final `commit_ts` for the transaction.
 * TiDB can return success to the client before sending the commit message but after receiving success responses for all prewrite messages.
-* If an operation fails because it is locked, TiDB must query the primary lock to find a list of secondaries (a `CheckTxnStatus` request). It can then send a batch get request to each region to get all secondary locks and the `min_commit_ts` in those locks. If all locks are got, it can send the commit message as above. If any lock is not present or rolled back, then the transaction should be rolled back.
+* If an operation fails because it is locked, TiDB must query the primary lock to find a list of secondaries (a `CheckTxnStatus` request). It will then send a `CheckSecondaryLocks` request to each region to get all secondary locks and the `min_commit_ts` in those locks. If all locks in a success state, it can send the commit message as above. If any lock is not present or rolled back, then the transaction should be rolled back.
 
 ### TiKV
 
 * The information stored with each primary key lock should include all keys locked by the transaction and their status.
 * When a prewrite is received, lock the keys with a preliminary ts of the start ts. Query PD for a timestamp, this is returned to TiDB as the `min_commit_ts` and stored in the lock data for the primary key.
 * When a read is woken up, ensure we check the commit ts, since we might want the old value (I think we do this anyway).
+* Handling a `CheckSecondaryLocks` message means checking each specified lock, returning `min_commit_ts` if the lock is in a success state and rolling back the lock if not (including leaving a rollback tombstone).
 
 
 
 ### Protobuf changes
 
-Prewrite requests need to notify TiKV that a transaction is using parallel commit
-
-```diff
-  message PrewriteRequest {
-      // ...
-+     bool use_parallel_commit = ...;
-+     repeated bytes secondaries = ...;
-  }
-```
-
-And the response carries some information that helps the client to continue finalizing the transaction:
-
-```diff
-  message PrewriteResponse {
-      // ...
-+     // 0 if the min_commit_ts is not ready or any other reason that parallel
-+     // commit cannot proceed. The client can then fallback to normal way to
-+     // continue committing the transaction if prewrite are all finished.
-+     uint64 min_commit_ts = ...; 
-  }
-```
-
-We also need to be able to clean up dead parallel commit transactions:
-
-```diff
-  message CheckTxnStatusResponse {
-      // ...
-+     bool use_parallel_commit = ...;
-+     repeated bytes secondaries = ...;
-  }
-```
+See [kvproto/637](https://github.com/pingcap/kvproto/pull/637) and [kvproto/651](https://github.com/pingcap/kvproto/pull/651).
 
 ## Evolution to long term solution
 
@@ -78,15 +54,15 @@ The framework of parallel commit will be in place at the end of the first iterat
 * Replica read. ([#20](https://github.com/tikv/sig-transaction/issues/20))
 * Interaction with CDC. ([#19](https://github.com/tikv/sig-transaction/issues/19))
 * Interaction with binlog. ([#19](https://github.com/tikv/sig-transaction/issues/19))
-* Missing schema check.
-* Interaction with large transactions (there should be no problem, we must ensure that other transactions don't push a parallel commit transaction's commit_ts).
-* Heartbeats for keeping parallel commit transactions alive.
+* Missing schema check in TiDB on commit.
+* Interaction with large transactions (there should be no problem, we must ensure that other transactions don't push a async commit transaction's commit_ts).
+* Heartbeats for keeping async commit transactions alive.
 
 ### Refinements
 
 #### TiDB
 
-* TiDB should choose whether or not to use parallel commit based on the size of the transaction
+* TiDB should choose whether or not to use async commit based on the size of the transaction
 
 #### TiKV
 
@@ -159,14 +135,13 @@ RACI roles:
   - Nick
   - Rui Xu
   - Yilin
-* Accountable: Shuaipeng
-* Consulted (expect this list to shrink):
+* Accountable: Rui Xu
+* Consulted:
   - Zhenjing
   - Zhaolei
-  - Rui Xu
+* Informed:
   - Liu Wei
   - Liqi
   - Evan Zhou
-* Informed (expect this list to grow):
   - #sig-transaction
   - this month in TiKV
