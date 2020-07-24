@@ -8,11 +8,11 @@ The TiKV transaction system is based on part of the [Percolator](https://researc
 
 These features are not well-documented elsewhere, so should have more in-depth descriptions here.
 
-* [Pipelined pessimistic transactions](TODO)
-* [Large transactions](TODO)
-* [Green GC](TODO)
-* [Parallel commit](TODO)
-* [1PC](TODO)
+* [Pipelined pessimistic transactions]()
+* [Large transactions]()
+* [Green GC]()
+* [Parallel commit]()
+* [1PC]()
 
 ## APIs
 
@@ -85,17 +85,6 @@ TODO
 
 TODO for each: why? implications, benefits
 
-* Timestamps are supplied by the client, TiKV does not get them directly from PD (exception: CDC).
-* All timestamps are unique.
-* Reads never fail (due to the transaction protocol, there might be network issues, etc. which cause failure).
-  - A locking read in a pessimistic transaction may block.
-  - A non-locking read will never block.
-* TiKV nodes do not communicate with each other, only with a client.
-* The transaction layer does not know about region topology, in particular, it does not treat regions on the same node differently to other regions.
-* If committing the primary key succeeds, then committing the secondary keys will never fail.
-
-* One key has only one lock (locking can be a kind of write)
-
 ### Timestamps are supplied by the client
 
 This decision benefits "user experience", performance and simplicity.
@@ -124,13 +113,7 @@ Reads never fail in Read Committed level. It will always read the latest committ
 
 Reads can fail in Snapshot Isolation level if the key is locked with `lock_ts` < `read_ts`. 
 
-### If committing the primary key succeeds, then committing the secondary keys will never fail.
-
-Even if it fails, the lock of a secondary key contains information of its primary key. Any transactions that meets the lock can recognize its state by reading the primary key and help commit the secondary key.
-
-This property allows returning success once the primary key is committed. Secondary keys could be committed asynchronously and we don't have to care about the result.
-
-### TiKV nodes do not communicate with each other, only with a client; The transaction layer does not know about region topology, in particular, it does not treat regions on the same node differently to other regions.
+### TiKV nodes do not communicate with each other, only with a client
 
 TiKV instances do not have to know each other. 
 
@@ -138,6 +121,16 @@ During the execution of transaction or raw kv requests, a TiKV instance will not
 This is guaranteed by the partitioning pattern that TiKV uses. 
 The whole span of data is divided into regions. 
 Each TiKV instance will only accept requests involving data lying in its regions, which should be guaranteed by the client.
+
+### The transaction layer does not know about region topology, in particular, it does not treat regions on the same node differently to other regions
+
+A TiKV instance does not have to know the topology. The client makes sure any request is sent to the right TiKV node that owns the data involved in the request.
+
+### If committing the primary key succeeds, then committing the secondary keys will never fail.
+
+Even if it fails, the lock of a secondary key contains information of its primary key. Any transactions that meets the lock can recognize its state by reading the primary key and help commit the secondary key.
+
+This property allows returning success once the primary key is committed. Secondary keys could be committed asynchronously and we don't have to care about the result.
 
 
 ## Glossary
