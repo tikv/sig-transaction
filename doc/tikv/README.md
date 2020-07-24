@@ -20,7 +20,7 @@ TiKV offers three kinds of API: raw, transactional, and [versioned](https://gith
 
 The raw API gives direct access to the keys and values in TiKV. It does not offer any transactional guarantees.
 
-The transactional API encodes data using MVCC (see below). By collaborating between the client and TiKV server, we can offer ACID transactions.
+The transactional API encodes data using MVCC (see below). By collaborating between the client and the TiKV server, we can offer ACID transactions.
 
 There is nothing preventing a client using both APIs, however, this is not a supported use case and if you do this you have to be very, very careful in order to not break the guarantees of the transactional API.
 
@@ -34,9 +34,9 @@ TODO
 
 ## Optimistic and pessimistic transactions
 
-TiKV supports two transaction models. Optimistic transactions were implemented first and often when TiKV folks don't specify optimistic or pessimistic, they mean optimistic by default. In the optimistic model, reads and writes are built up locally. All writes are sent together in a prewrite. During prewrite, all keys to be written are locked. If any keys are locked by another transaction, return to client. If all prewrites succeed, the client sends a commit message.
+TiKV supports two transaction models. Optimistic transactions were implemented first and often when TiKV folks don't specify optimistic or pessimistic, they mean optimistic by default. In the optimistic model, reads and writes are built up locally. All writes are sent together in a prewrite. During prewrite, all keys to be written are locked. If any keys are locked by another transaction, return to the client. If all prewrites succeed, the client sends a commit message.
 
-Pessimistic transactions are the default in TiKV since 3.0.8. In the pessimistic model, there are *locking reads* (from `SELECT ... FOR UPDATE` statements), these read a value and lock the key. This means that reads can block. SQL statements which cause writes, lock the keys as they are executed. Writing to the keys is still postponed until prewrite. Prewrite and commit works
+Pessimistic transactions are the default in TiKV since 3.0.8. In the pessimistic model, there are *locking reads* (from `SELECT ... FOR UPDATE` statements), these read a value and lock the key. This means that reads can block. SQL statements which cause writes, lock the keys as they are executed. Writing to the keys is still postponed until the prewrite. Prewrite and commit works
 
 TODO pessimistic txns and Read Committed
 
@@ -54,7 +54,7 @@ TODO
 
 ## Timestamps
 
-TODO what are timestamps? How are they represented, used, generated. AKA ts, version
+TODO what are timestamps? How are they represented, used, generated? AKA ts, version
 
 ### Some timestamps used in transactions
 
@@ -81,7 +81,7 @@ TODO
 
 TODO
 
-## Constraints and assumptions
+## Invariants, constraints, and assumptions
 
 TODO for each: why? implications, benefits
 
@@ -93,6 +93,52 @@ TODO for each: why? implications, benefits
 * TiKV nodes do not communicate with each other, only with a client.
 * The transaction layer does not know about region topology, in particular, it does not treat regions on the same node differently to other regions.
 * If committing the primary key succeeds, then committing the secondary keys will never fail.
+
+* One key has only one lock (locking can be a kind of write)
+
+### Timestamps are supplied by the client
+
+This decision benefits "user experience", performance and simplicity.
+
+First, it gives users more control over the order of concurrent transactions.
+
+For example, a client commits two transactions: T1 and then T2. 
+If timestamps are supplied by the user, it can assure that T1 won't read any effects of T2 if T1's timestamp is smaller than T2's.
+While if we let TiKV get the timestamp, the user cannot get this guarantee because the order of processing T1 and T2 is nondeterministic.
+
+Second, it simplifies the system. Otherwise we have to let TiKV maintain states of all active transactions. 
+
+Third, it is beneficial for performance. Letting TiKV maintain states of active transactions would lead to extra network communication. Large volumn of transactions could overburden TiKV server. In addition, GC of inactive transactions is a problem.
+
+TODO: further elaboration
+
+### All timestamps are unique
+
+This no longer holds. 1PC and Async commit could break this guarantee.
+
+Multiple transactions may have identical commit timestamps. However one transaction must have distinct start_ts and commit_ts.
+
+### Reads never fail
+
+Reads never fail in Read Committed level. It will always read the latest committed version.
+
+Reads can fail in Snapshot Isolation level if the key is locked with `lock_ts` < `read_ts`. 
+
+### If committing the primary key succeeds, then committing the secondary keys will never fail.
+
+Even if it fails, the lock of a secondary key contains information of its primary key. Any transactions that meets the lock can recognize its state by reading the primary key and help commit the secondary key.
+
+This property allows returning success once the primary key is committed. Secondary keys could be committed asynchronously and we don't have to care about the result.
+
+### TiKV nodes do not communicate with each other, only with a client; The transaction layer does not know about region topology, in particular, it does not treat regions on the same node differently to other regions.
+
+TiKV instances do not have to know each other. 
+
+During the execution of transaction or raw kv requests, a TiKV instance will not need information from other TiKV instances. 
+This is guaranteed by the partitioning pattern that TiKV uses. 
+The whole span of data is divided into regions. 
+Each TiKV instance will only accept requests involving data lying in its regions, which should be guaranteed by the client.
+
 
 ## Glossary
 
