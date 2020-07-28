@@ -115,18 +115,11 @@ Reads never fail in the read committed level. The client will always read the mo
 
 Read requests can return `KeyError` in the snapshot isolation level if the key is locked with `lock_ts` < `read_ts`. Then the client can try to resolve the lock and retry until it succeeds.
 
-### TiKV nodes do not communicate with each other, only with a client
-
-TiKV instances do not have to know each other at the transaction layer. In the raft-store layer, they communicate with peers in the same Raft group.
-
-During the execution of transaction or raw kv requests, a TiKV instance will not need information from other TiKV instances. 
-This is guaranteed by the partitioning pattern that TiKV uses. 
-The whole span of data is divided into regions. 
-Each TiKV instance will only accept requests involving data lying in its regions, which should be guaranteed by the client.
 
 ### The transaction layer does not know about region topology, in particular, it does not treat regions on the same node differently to other regions
 
-A TiKV instance does not have to know the topology. The client makes sure any request is sent to the right TiKV node that owns the data involved in the request.
+A TiKV instance does not have to know the topology. 
+The whole span of data is partitioned into regions. Each TiKV instance will only accept requests involving data lying in its regions. The client makes sure any request is sent to the right TiKV node that owns the data the request needs.
 
 The design decouples transaction logic and physical data distribution. It makes shceduling more flexible and elastic. 
 Imagine a redistribution of regions among a TiKV cluster that does not require any downtime or maintainance to either clients or TiKV instances.
