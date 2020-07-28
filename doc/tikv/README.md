@@ -107,10 +107,9 @@ TODO
 
 It's true in previous versions of TiKV. Enabling 1PC or Async commit features could break this guarantee.
 
-Multiple transactions may have identical commit timestamps. Start timestamps are still unique. One transaction must have distinct start_ts and commit_ts.
+Multiple transactions may have identical commit timestamps. Start timestamps are still unique. One transaction must have distinct start_ts and commit_ts, unless it's rolled back. The commit_ts of a rollback record is the start_ts.
 
-### Reads never fail
-
+### From a user's perspective, reads never fail but might have to wait
 
 Reads never fail in the read committed level. The client will always read the most recent committed version.
 
