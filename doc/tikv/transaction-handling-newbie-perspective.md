@@ -58,7 +58,7 @@ Firstly, it will use grpc call [`GetRegion`](https://github.com/pingcap/kvproto/
 
 The remote fuction `GetRegion` it defined is [here](https://github.com/pingcap/pd/blob/6dab049720f4c4e1a91405806fc1fa6517928589/server/grpc_service.go#L416) in pd.
 
-And then we'll use grpc call [`GetStore`](https://github.com/pingcap/kvproto/blob/d4aeb467de2904c19a20a12de47c25213b759da1/proto/pdpb.proto#L31) in `map_region_to_store` to find out the major replica of region.
+And then we'll use grpc call [`GetStore`](https://github.com/pingcap/kvproto/blob/d4aeb467de2904c19a20a12de47c25213b759da1/proto/pdpb.proto#L31) in `map_region_to_store` to find out the leader of region.
 
 The remote fuction `GetStore` it defined is [here](https://github.com/pingcap/pd/blob/2b56a4c5915cb4b8806629193fd943a2e860ae4f/server/grpc_service.go#L171) in pd.
 
@@ -193,7 +193,7 @@ And on the TiKV side, things are a little different, firstly, the request will b
 
 ### Write
 
-In fact, write just write to local buffer. All data modifications will be sent to TiKV on commit.
+In fact, write just write to local buffer. All data modifications will be sent to TiKV on prewrite.
 
 ### Commit
 

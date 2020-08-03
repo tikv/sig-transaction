@@ -13,16 +13,18 @@ The SIG is in the process of starting up and currently does not have any officia
 
 ## How to get involved
 
-You can join us in #sig-transaction in the [TiKV community Slack](https://tikv.org/chat); come say hi! We use English or Chinese.
+You can join us in #sig-transaction in the [TiKV community Slack](https://slack.tidb.io/invite?team=tikv-wg&channel=sig-transaction&ref=community-sig); come say hi! We use English or Chinese.
 
 You can read or join our announcement [mailing list](https://groups.google.com/d/forum/tikv-sig-transaction), so you can stay up to date with what we're up to.
 
-We will have formal membership of the group ready later in the year.
+If you would like to join the SIG or have any questions about it, please email sig-txn@tikv.dev.
 
 
 ## Repository contents
 
-Coming soon...
+* [People](people.md) in the SIG.
+
+Coming soon:
 
 * Resources for learning about distributed transactions,
 * notes from reading group discussions,
@@ -32,15 +34,14 @@ Coming soon...
 
 ## People
 
-We look forward to welcoming new members soon. For now, we do not have formal members other than the SIG's leaders.
+See [people.md](people.md). If you want to mention us in an issue, PR, or comment, use @tikv/sig-txn.
 
 ### Leaders
 
 If you have questions about the SIG or transactions in TiKV, please get in touch with either of us!
 
-* Shuaipeng 'Jack' Yu, 于帅鹏 [@jackysp](https://github.com/jackysp),
-* Nick Cameron [@nrc](https://github.com/nrc).
-
+* Nick Cameron, [@nrc](https://github.com/nrc).
+* Andy Lok, 骆迪安, [@andylokandy](https://github.com/andylokandy)
 
 ## Links
 
