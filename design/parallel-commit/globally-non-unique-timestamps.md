@@ -1,3 +1,27 @@
+# Allow commit_ts to be non-globally unique.
+
+This document is about the problem and the solution of the non-globally-unique `commit_ts` problem.
+
+## The problem
+
+in TiKV, rolling back a transaction need to leave a rollback record in order to guarantee consistency. But rollback records and commit records are both saved in Write CF, and the commit records are saved with `{user_key}{commit_ts}` as the internal key, while that of rollback records are `{user_key}{start_ts}`. Previously the `commit_ts`es are TSOs allocated from PD, which is guaranteed globally unique. However when we tries to use a calculated timestamp as the `commit_ts` to avoid the latency of PD's RPC, it's possible that a rollback record gets the same internal key as a commit record, but we need to keep them both.
+
+## The solution
+
+The solution is to keep the commit record, but with a `has_overlapped_rollback` flag in this case to indicate that there's a rollback happened here whose `start_ts` equals to the current record's `commit_ts`. But only "protected" rollbacks need to set the flag. Non-protected rollback records can be dropped without introducing potential inconsistency.
+
+To do this, when performing a protected rollback operation, check the records in write CF to see if there's already a commit record of another transaction. If so, instead of writing the rollback record, add the `has_overlapped_rollback` flag to that commit record. For example, when rolling a transaction whose `start_ts = 10` on a key, but there's another commit record whose `start_ts = 5` and `commit_ts = 10` that updates the key, if we write the rollback record directly, then the commit record will be overwritten. So instead, keep the commit record, but set the `has_overlapped_rollback` flag.
+
+It's also possible that when committing a transaction, there's already another transaction's rollback record that might be overwritten, which is not expected. An easy approach to solve this is to check whether there's a overlapping rollback record already here. But previously commit operations don't need to read Write CF, so introducing this check may significantly harm the performance. Our final solution to this case is that:
+
+1. Considering a single key, if transaction `T1`'s rollback operation happens before transaction `T2`'s prewriting, `T1` can push the `max_read_ts` which can be seen by `T2`, so `T2`'s `commit_ts` can be guaranteed to be greater than `T1`'s `start_ts`. Therefore `T2` won't overwrite `T1`'s rollback record.
+2. Considering a single key, if transaction `T1`'s rollback operation happens between `T2`'s prewriting and committing, the rollback will have no chance to affect `T2`'s `commit_ts`. In this case, `T1` can save its timestamp to `T2`'s lock. So when `T2` is committing, it can get the information of the rollback operation from the lock. If one of the recorded rollback timestamps in the lock equals to `T2`'s `commit_ts`, the `has_overlapped_rollback` flag will be set. Of course, if the `T1` finds that the lock's `start_ts` or `min_commit_ts` is greater than `T1`'s start_ts, or any other reason that implies that `T2`'s `commit_ts` is impossible to be the same as `T1`'s start_ts, then `T1` doesn't need to add the timestamp to the lock.
+
+## The old discussion document
+
+<details>
+<summary>Here is an old document that discusses about different solutions to this problem.</summary>
+
 This is a machine translation of a [Chinese document](https://docs.google.com/document/d/1ofa9zYdb0-UmFu-uDHDLft2-G4s2SI2TJRErNRDH7O0/edit#) by @MyonKeminta.
 
 # Allow commit_ts to be non-globally unique.
@@ -84,3 +108,5 @@ However, it means we lose strict linearizability because the order of writes may
 This solution is amenable to configuration, since if the node id is always 0, then we have the same properties as we do currently.
 
 TODO - how does this interact with tools which require unique timestamps?
+
+</details>
