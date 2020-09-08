@@ -1,8 +1,9 @@
 # Parallel commit
 
-This directory contains design documentation for parallel commit. Design is work-in-progress and implementation has not yet started.
+This directory contains design documentation for parallel commit. Implementation is in progress, see [project summary](project-summary.md).
 
-Implementation is tracked in a [TiKV project](https://github.com/tikv/tikv/projects/34).
+Implementation is tracked in a [tracking issue](https://github.com/tikv/sig-transaction/issues/36) and [TiKV project](https://github.com/tikv/tikv/projects/34).
+
 
 ## Overview
 
