@@ -68,3 +68,8 @@ If you have questions about the SIG or transactions in TiKV, please get in touch
 * project: [Large transactions](https://github.com/tikv/tikv/projects/36),
 * project: [Green GC](https://github.com/tikv/tikv/projects/35),
 * project: [Parallel commit](https://github.com/tikv/tikv/projects/34).
+
+
+## Rendering documentation
+
+You can render the contents of this repo using mdbook, just run `mdbook build` in the top directory.

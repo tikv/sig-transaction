@@ -1,0 +1,15 @@
+[book]
+title = "TiKV sig-transaction documentation"
+author = "TiKV transactions SIG"
+description = "Documentation of distributed transactions in TiDB and TiKV. Includes some coverage of general distributed transaction topics."
+src = "."
+
+[rust]
+edition = "2018"
+
+[build]
+build-dir = "book-out"
+create-missing = false
+
+[output.html]
+git-repository-url = "https://github.com/tikv/sig-transaction"
