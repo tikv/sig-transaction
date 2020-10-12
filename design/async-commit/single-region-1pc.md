@@ -20,11 +20,11 @@ Since async commit is implemented, it's not difficult to implement a working 1PC
 * When TiKV receives a request with `try_one_pc` set, it first handle it just like how it handles normal prewrite requests.But after generating write buffer and before writing them down to RocksDB, it will additionally check if the prewrite is fully successful, and convert the locks into commit records if so. And finally write them down to RocksDB. The `commit_ts` is `max(max_ts, start_ts, for_update_ts) + 1`. It fetches the `max_ts` while acquiring the memory lock, and the memory lock is released after applying, just like how async commit does. The final `commit_ts` will be sent back to TiDB via prewrite response.
 * 1PC and async commit can be independent. When TiKV rejects to commit a transaction with 1PC, the transaction can then fallback to normal transactions, and it may become a normal 2PC transaction or an async commit transaction, according to if the async commit flag is set.
 
-## Problems need to solve
+## Problems need to be solved
 
 ### Schema version checking problem
 
-[This problem exists in async commit too](https://github.com/tikv/sig-transaction/blob/master/design/async-commit/parallel-commit-known-issues-and-solutions.md#schema-version-checking). But it's even harder to solve for 1PC, because if it's committed in TiKV, it will have no chance to check if the schema version, while for async commit it can be checked after prewrite finishing.
+[This problem exists in async commit too](https://github.com/tikv/sig-transaction/blob/master/design/async-commit/parallel-commit-known-issues-and-solutions.md#schema-version-checking). But it's even harder to solve for 1PC, because if it's committed in TiKV, it will have no chance to check if the schema version has changed between the `start_ts` and `commit_ts`, while for async commit it can be checked after prewrite finishing.
 
 Possible solution: When trying committing a transaction with 1PC, find a ts `one_pc_max_commit_ts` before which we can guarantee that the schema version can't change, and send it to TiKV. TiKV will reject committing if the calculated `commit_ts` exceeds the `one_pc_max_commit_ts`.
 
