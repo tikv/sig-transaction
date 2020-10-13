@@ -2,9 +2,7 @@
 
 For transactions that affect only one region, or more strictly speaking, that can be prewritten with only one prewrite request, can be committed directly while the prewrite request is being handled, so the commit phase can be totally removed. Therefore we can get less latency and more throughput. For TiDB, indices and rows are unsally not in a same region, **so this optimization only works under a limited amount of scenarios, like sysbench oltp_update_non_index**. But in a suitable scenario, it gains significantly better performance.
 
-In the old days we did some attempt to implement single region 1PC for single-region transactions, but due to incompatibility and some technical problem it was delayed. [There is some document left at that time (note that it's very outdated)](https://docs.google.com/document/d/1Vkk8LpYbXaQ0ualdFFH35V6mv9c9RsWJu2s6nhJz9E4/edit). But now since async commit, which meets and solved mostly the same problem as 1PC, is implemented, we can continue supporting 1PC with much less effort to make.
-
-It's expected that by supporting single region 1PC, scenarios such as update_non_index will have better performance, lower latency and higher throughput.
+We used to think about supporting 1PC before but stopped after meeting many difficulties. Now since async commit, which meets and solved mostly the same problem as 1PC, is implemented, we can continue supporting 1PC with much less effort to make.
 
 * Problems already solved by supporting async commit:
   * Commit ts calculation
