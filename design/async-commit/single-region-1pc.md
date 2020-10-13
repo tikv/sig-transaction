@@ -1,6 +1,8 @@
 # Single Region 1PC
 
-In the old days we did some attempt to implement single region 1PC for single region transactions, but due to incompatibility and some technical problem it was delayed. [There is some document left at that time (note that it's very outdated)](https://docs.google.com/document/d/1Vkk8LpYbXaQ0ualdFFH35V6mv9c9RsWJu2s6nhJz9E4/edit). But now since async commit, which meets and solved the same problem as 1PC, is implemented, we can continue supporting 1PC with much less effort to make.
+For transactions that affect only one region, or more strictly speaking, that can be prewritten with only one prewrite request, can be committed directly while the prewrite request is being handled, so the commit phase can be totally removed. Therefore we can get less latency and more throughput. For TiDB, indices and rows are unsally not in a same region, **so this optimization only works under a limited amount of scenarios, like sysbench oltp_update_non_index**. But in a suitable scenario, it gains significantly better performance.
+
+In the old days we did some attempt to implement single region 1PC for single-region transactions, but due to incompatibility and some technical problem it was delayed. [There is some document left at that time (note that it's very outdated)](https://docs.google.com/document/d/1Vkk8LpYbXaQ0ualdFFH35V6mv9c9RsWJu2s6nhJz9E4/edit). But now since async commit, which meets and solved mostly the same problem as 1PC, is implemented, we can continue supporting 1PC with much less effort to make.
 
 It's expected that by supporting single region 1PC, scenarios such as update_non_index will have better performance, lower latency and higher throughput.
 
@@ -39,7 +41,20 @@ Possible solutions:
 
 ## POC Test
 
-WIP
+We verified the improvement on a draft implementation with a brief test with following configurations, on a cluster with 3 TiKV nodes(16c 90G each) and 1 TiDB node(16c 64G):
+
+```
+sysbench oltp_update_non_index run --rand-type=uniform --db-driver=mysql --tables=8 --table-size=10000000 --time=270 --percentile=99 --report-interval=10 --threads=128
+```
+
+Here's the result:
+
+| test                       |     qps | lat avg (ms) | lat .99 (ms) | lat max (ms)|
+|----------------------------|---------|--------------|--------------|-------------|
+|update_non_index<br/>1pc    | 16603.37|          7.71|         15.00|        81.50|
+|update_non_index<br/>async_commit|13278.29|      9.64|         18.61|       110.50|
+|update_non_index<br/>2pc    |  8892.85|         14.39|         24.83|       118.57|
+
 
 ## Plan
 
