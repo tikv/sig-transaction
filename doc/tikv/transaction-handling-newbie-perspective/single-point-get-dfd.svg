@@ -1,0 +1,201 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="665px" height="598px" viewBox="0 0 665 598" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+    <title>编组</title>
+    <g id="页面-1" stroke="none" stroke-width="1" fill="none" fill-rule="evenodd">
+        <g id="编组">
+            <rect id="矩形" fill="#FFFFFF" fill-rule="nonzero" x="0" y="0" width="665" height="598"></rect>
+            <ellipse id="椭圆形" fill="#99CC00" fill-rule="nonzero" cx="340.8539" cy="206.6816" rx="72.5196" ry="21"></ellipse>
+            <text id="GetRequest::execute" fill="#FFFFFF" fill-rule="nonzero" font-family="Helvetica" font-size="12" font-weight="normal">
+                <tspan x="281.1029" y="211.2168">GetRequest::execute</tspan>
+            </text>
+            <ellipse id="椭圆形" fill="#00ACD7" fill-rule="nonzero" cx="206.4286" cy="36.0665" rx="58" ry="21"></ellipse>
+            <text id="Server.GetRegion" fill="#FFFFFF" fill-rule="nonzero" font-family="Helvetica" font-size="12" font-weight="normal">
+                <tspan x="156.6532" y="40.6017">Server.GetRegion</tspan>
+            </text>
+            <rect id="矩形" fill="#FFCC00" fill-rule="nonzero" x="95.1113" y="241.6701" width="80" height="24"></rect>
+            <rect id="矩形" stroke="#000000" x="95.1113" y="241.6701" width="80" height="24"></rect>
+            <text id="buffer" fill="#000000" fill-rule="nonzero" font-family="Helvetica" font-size="12" font-weight="normal">
+                <tspan x="117.4013" y="258.2052">buffer</tspan>
+            </text>
+            <ellipse id="椭圆形" fill="#00ACD7" fill-rule="nonzero" cx="489.3521" cy="43.6816" rx="58" ry="21"></ellipse>
+            <text id="Server.GetStore" fill="#FFFFFF" fill-rule="nonzero" font-family="Helvetica" font-size="12" font-weight="normal">
+                <tspan x="444.6392" y="48.2167">Server.GetStore</tspan>
+            </text>
+            <ellipse id="椭圆形" fill="#FFC832" fill-rule="nonzero" cx="254.9023" cy="345.5455" rx="54.0624" ry="17.3086"></ellipse>
+            <text id="future_get" fill="#FFFFFF" fill-rule="nonzero" font-family="Helvetica" font-size="12" font-weight="normal">
+                <tspan x="224.8788" y="350.0806">future_get</tspan>
+            </text>
+            <rect id="矩形" fill="#FFCC00" fill-rule="nonzero" x="474.9936" y="289.8332" width="1" height="1"></rect>
+            <rect id="矩形" stroke="#000000" x="474.9936" y="289.8332" width="1" height="1"></rect>
+            <ellipse id="椭圆形" fill="#FFC832" fill-rule="nonzero" cx="254.9023" cy="418.7219" rx="67.2809" ry="17.3086"></ellipse>
+            <text id="SnapshotStore::get" fill="#FFFFFF" fill-rule="nonzero" font-family="Helvetica" font-size="12" font-weight="normal">
+                <tspan x="200.0615" y="423.2571">SnapshotStore::get</tspan>
+            </text>
+            <ellipse id="椭圆形" fill="#FFC832" fill-rule="nonzero" cx="254.9023" cy="491.8983" rx="67.2809" ry="17.3086"></ellipse>
+            <text id="PointGetter::get" fill="#FFFFFF" fill-rule="nonzero" font-family="Helvetica" font-size="12" font-weight="normal">
+                <tspan x="209.1083" y="496.4335">PointGetter::get</tspan>
+            </text>
+            <ellipse id="椭圆形" fill="#FFC832" fill-rule="nonzero" cx="254.9023" cy="565.0747" rx="67.2809" ry="17.3086"></ellipse>
+            <text id="load_and_check_lock" fill="#FFFFFF" fill-rule="nonzero" font-family="Helvetica" font-size="12" font-weight="normal">
+                <tspan x="193.8593" y="569.6099">load_and_check_lock</tspan>
+            </text>
+            <ellipse id="椭圆形" fill="#99CC00" fill-rule="nonzero" cx="493.2896" cy="305.5494" rx="58" ry="17.3086"></ellipse>
+            <text id="resolve_locks" fill="#FFFFFF" fill-rule="nonzero" font-family="Helvetica" font-size="12" font-weight="normal">
+                <tspan x="454.5065" y="310.0846">resolve_locks</tspan>
+            </text>
+            <ellipse id="椭圆形" fill="#FFC832" fill-rule="nonzero" cx="493.2896" cy="418.7219" rx="54.0624" ry="17.3086"></ellipse>
+            <text id="ResolveLock" fill="#FFFFFF" fill-rule="nonzero" font-family="Helvetica" font-size="12" font-weight="normal">
+                <tspan x="457.7614" y="423.2571">ResolveLock</tspan>
+            </text>
+            <rect id="矩形" fill="#FFCC00" fill-rule="nonzero" x="647.2285" y="201.2728" width="1" height="1"></rect>
+            <rect id="矩形" stroke="#000000" x="647.2285" y="201.2728" width="1" height="1"></rect>
+            <rect id="矩形" fill="#FFCC00" fill-rule="nonzero" x="17.489" y="185.6816" width="1" height="2.0384"></rect>
+            <rect id="矩形" stroke="#000000" x="17.489" y="185.6816" width="1" height="2.0384"></rect>
+            <rect id="矩形" fill="#FFC832" fill-rule="nonzero" x="431.578" y="466.0304" width="123.4233" height="52.3184"></rect>
+            <rect id="矩形" fill="#FFFF47" fill-rule="nonzero" x="431.578" y="466.0304" width="1" height="52.3184"></rect>
+            <rect id="矩形" fill="#FFFF47" fill-rule="nonzero" x="432.578" y="466.0304" width="121.4233" height="1"></rect>
+            <rect id="矩形" fill="#B28C23" fill-rule="nonzero" x="432.578" y="517.3488" width="122.4233" height="1"></rect>
+            <rect id="矩形" fill="#B28C23" fill-rule="nonzero" x="554.0013" y="466.0304" width="1" height="51.3184"></rect>
+            <text id="things" fill="#FFFFFF" fill-rule="nonzero" font-family="Helvetica" font-size="12" font-weight="normal">
+                <tspan x="475.0641" y="482.5919">things</tspan>
+            </text>
+            <text id="about" fill="#FFFFFF" fill-rule="nonzero" font-family="Helvetica" font-size="12" font-weight="normal">
+                <tspan x="476.5465" y="496.7247">about</tspan>
+            </text>
+            <text id="mvcc" fill="#FFFFFF" fill-rule="nonzero" font-family="Helvetica" font-size="12" font-weight="normal">
+                <tspan x="478.4362" y="510.8575">mvcc</tspan>
+            </text>
+            <polyline id="路径" stroke="#000000" points="313.6492 187.2152 251.7463 142.9207 244.7835 136.2101 240.16 127.7169 216.853 64.3901"></polyline>
+            <polygon id="路径" fill="#000000" fill-rule="nonzero" points="214.0898 56.8825 213.5423 69.871 217.1984 65.3286 222.9268 66.417"></polygon>
+            <text id="grpc" fill="#000000" fill-rule="nonzero" font-family="Helvetica" font-size="12" font-weight="normal">
+                <tspan x="200.5159" y="144.932">grpc</tspan>
+            </text>
+            <text id="GetRegion" fill="#000000" fill-rule="nonzero" font-family="Helvetica" font-size="12" font-weight="normal">
+                <tspan x="185.5159" y="159.0648">GetRegion</tspan>
+            </text>
+            <polyline id="路径" stroke="#000000" points="228.3748 55.5051 274.0662 95.9757 280.9182 103.1207 286.5026 111.2947 325.0872 179.0109"></polyline>
+            <polygon id="路径" fill="#000000" fill-rule="nonzero" points="329.0477 185.9617 327.4512 173.0601 324.5922 178.142 318.7627 178.0107"></polygon>
+            <rect id="矩形" fill="#FFFFFF" fill-rule="nonzero" x="269.5867" y="111.1885" width="44.043" height="18.1328"></rect>
+            <text id="Region" fill="#000000" fill-rule="nonzero" font-family="Helvetica" font-size="12" font-weight="normal">
+                <tspan x="271.5867" y="124.79">Region</tspan>
+            </text>
+            <line x1="175.1113" y1="244.5347" x2="276.1135" y2="221.4673" id="路径" stroke="#000000"></line>
+            <polygon id="路径" fill="#000000" fill-rule="nonzero" points="283.9127 219.6862 271.1006 217.4834 275.1385 221.6899 273.3271 227.2323"></polygon>
+            <rect id="矩形" fill="#FFFFFF" fill-rule="nonzero" x="185.1524" y="217.7565" width="73.1406" height="32.2656"></rect>
+            <text id="value" fill="#000000" fill-rule="nonzero" font-family="Helvetica" font-size="12" font-weight="normal">
+                <tspan x="206.5031" y="231.358">value</tspan>
+            </text>
+            <text id="(if-buffered)" fill="#000000" fill-rule="nonzero" font-family="Helvetica" font-size="12" font-weight="normal">
+                <tspan x="187.1525" y="245.4908">(if buffered)</tspan>
+            </text>
+            <polyline id="路径" stroke="#000000" points="462.4928 62.2941 405.4364 101.8323 398.0364 108.2775 392.2752 116.2216 356.5861 179.0056"></polyline>
+            <polygon id="路径" fill="#000000" fill-rule="nonzero" points="352.6327 185.9604 362.9097 177.999 357.0803 178.1362 354.2161 173.0573"></polygon>
+            <rect id="矩形" fill="#FFFFFF" fill-rule="nonzero" x="380.2581" y="98.4616" width="33.918" height="18.1328"></rect>
+            <text id="Store" fill="#000000" fill-rule="nonzero" font-family="Helvetica" font-size="12" font-weight="normal">
+                <tspan x="382.2581" y="112.0632">Store</tspan>
+            </text>
+            <polyline id="路径" stroke="#000000" points="476.9443 64.1954 441.7811 122.331 435.9393 130.3 428.7649 137.0941 366.169153 186.7317"></polyline>
+            <rect id="矩形" fill="#FFFFFF" fill-rule="nonzero" x="409.7239" y="114.7547" width="53.7637" height="32.2656"></rect>
+            <text id="grpc" fill="#000000" fill-rule="nonzero" font-family="Helvetica" font-size="12" font-weight="normal">
+                <tspan x="421.6614" y="128.3563">grpc</tspan>
+            </text>
+            <text id="GetStore" fill="#000000" fill-rule="nonzero" font-family="Helvetica" font-size="12" font-weight="normal">
+                <tspan x="411.7239" y="142.4891">GetStore</tspan>
+            </text>
+            <polyline id="路径" stroke="#000000" points="308.8408 225.5516 301.8241 230.5398 286.6947 245.1833 274.4889 261.6365 265.2068 279.8993 258.8483 299.9717 255.6726 320.2029 255.6705 320.3029"></polyline>
+            <polygon id="路径" fill="#000000" fill-rule="nonzero" points="255.2717 328.293 260.8636 316.5571 255.7203 319.3042 250.876 316.0586"></polygon>
+            <rect id="矩形" fill="#FFFFFF" fill-rule="nonzero" x="255.5436" y="245.5037" width="37.8906" height="32.2656"></rect>
+            <text id="grpc" fill="#000000" fill-rule="nonzero" font-family="Helvetica" font-size="12" font-weight="normal">
+                <tspan x="261.443" y="259.1052">grpc</tspan>
+            </text>
+            <text id="KvGet" fill="#000000" fill-rule="nonzero" font-family="Helvetica" font-size="12" font-weight="normal">
+                <tspan x="257.5436" y="273.238">KvGet</tspan>
+            </text>
+            <polyline id="路径" stroke="#000000" points="280.9011 330.3616 293.3074 321.3007 308.2807 306.5604 320.4344 290.0751 329.7686 271.8445 336.2832 251.8688 339.0419 235.6526 339.0456 235.5526"></polyline>
+            <polygon id="路径" fill="#000000" fill-rule="nonzero" points="340.0818 227.62 333.5696 238.8712 338.916 236.5442 343.4853 240.1666"></polygon>
+            <rect id="矩形" fill="#FFFFFF" fill-rule="nonzero" x="303.2147" y="281.0087" width="34.4395" height="18.1328"></rect>
+            <text id="value" fill="#000000" fill-rule="nonzero" font-family="Helvetica" font-size="12" font-weight="normal">
+                <tspan x="305.2147" y="294.6102">value</tspan>
+            </text>
+            <polyline id="路径" stroke="#000000" points="242.0198 362.3746 241.0986 363.8396 237.6478 372.9866 236.4974 382.1337 237.6478 391.2808 238.8171 394.3802 238.8703 394.4648"></polyline>
+            <polygon id="路径" fill="#000000" fill-rule="nonzero" points="241.9681 401.8407 241.9313 388.8407 238.4831 393.5428 232.7115 392.713"></polygon>
+            <rect id="矩形" fill="#FFFFFF" fill-rule="nonzero" x="226.9376" y="368.2473" width="23.9688" height="18.1328"></rect>
+            <text id="key" fill="#000000" fill-rule="nonzero" font-family="Helvetica" font-size="12" font-weight="normal">
+                <tspan x="228.9376" y="381.8489">key</tspan>
+            </text>
+            <polyline id="路径" stroke="#000000" points="272.4784 402.0356 273.8674 400.4277 278.6087 391.2808 280.1891 382.1337 278.6087 372.9866 276.4191 368.7623 276.3538 368.6866"></polyline>
+            <polygon id="路径" fill="#000000" fill-rule="nonzero" points="272.1799 361.8617 274.175 374.7076 276.8754 369.5397 282.7062 369.4905"></polygon>
+            <text id="value/KeyIsLocked" fill="#000000" fill-rule="nonzero" font-family="Helvetica" font-size="12" font-weight="normal">
+                <tspan x="298.515" y="386.6688">value/KeyIsLocked</tspan>
+            </text>
+            <polyline id="路径" stroke="#000000" points="245.4326 435.8369 244.8951 437.016 242.3932 446.1631 241.5593 455.3101 242.3932 464.4572 243.1227 467.124 243.1642 467.215"></polyline>
+            <polygon id="路径" fill="#000000" fill-rule="nonzero" points="245.461 474.8782 246.8053 461.9479 242.8771 466.2571 237.2263 464.8188"></polygon>
+            <rect id="矩形" fill="#FFFFFF" fill-rule="nonzero" x="231.3327" y="441.4237" width="23.9688" height="18.1328"></rect>
+            <text id="key" fill="#000000" fill-rule="nonzero" font-family="Helvetica" font-size="12" font-weight="normal">
+                <tspan x="233.3326" y="455.0253">key</tspan>
+            </text>
+            <polyline id="路径" stroke="#000000" points="268.7871 474.9263 269.6769 473.6042 273.3705 464.4572 274.6017 455.3101 273.3705 446.1631 272.0861 442.9821 272.0302 442.899"></polyline>
+            <polygon id="路径" fill="#000000" fill-rule="nonzero" points="268.7466 435.604 269.1125 448.5989 272.4406 443.8109 278.2314 444.4944"></polygon>
+            <text id="value/KeyIsLocked" fill="#000000" fill-rule="nonzero" font-family="Helvetica" font-size="12" font-weight="normal">
+                <tspan x="287.2072" y="459.8452">value/KeyIsLocked</tspan>
+            </text>
+            <polyline id="路径" stroke="#000000" points="244.5344 509.0133 243.9459 510.1924 241.2068 519.3395 240.2938 528.4866 241.2068 537.6335 242.0244 540.3636 242.069 540.4531"></polyline>
+            <polygon id="路径" fill="#000000" fill-rule="nonzero" points="244.5653 548.0537 245.5713 535.0927 241.757 539.5031 236.0706 538.213"></polygon>
+            <rect id="矩形" fill="#FFFFFF" fill-rule="nonzero" x="232.1583" y="509.7803" width="23.9688" height="18.1328"></rect>
+            <text id="key" fill="#000000" fill-rule="nonzero" font-family="Helvetica" font-size="12" font-weight="normal">
+                <tspan x="234.1583" y="523.3818">key</tspan>
+            </text>
+            <polyline id="路径" stroke="#000000" points="270.2554 548.2456 271.3531 546.7806 275.4658 537.6335 276.8367 528.4866 275.4658 519.3395 273.8971 515.8505 273.8372 515.7704"></polyline>
+            <polygon id="路径" fill="#000000" fill-rule="nonzero" points="270.2107 508.6395 271.1936 521.6023 274.2905 516.6617 280.1072 517.0692"></polygon>
+            <rect id="矩形" fill="#FFFFFF" fill-rule="nonzero" x="266.4894" y="520.2722" width="89.6289" height="18.1328"></rect>
+            <text id="KeyIsLocked/()" fill="#000000" fill-rule="nonzero" font-family="Helvetica" font-size="12" font-weight="normal">
+                <tspan x="268.4894" y="533.8738">KeyIsLocked/()</tspan>
+            </text>
+            <polyline id="路径" stroke="#000000" points="347.7842 227.5844 350.2329 233.9579 355.9591 245.9976 362.3763 256.9718 369.4847 266.8805 377.2842 275.7236 385.7748 283.5011 394.9565 290.2131 404.8293 295.8596 415.3932 300.4406 426.6481 303.9559 427.4441 304.1191"></polyline>
+            <polygon id="路径" fill="#000000" fill-rule="nonzero" points="435.281 305.7263 424.5302 298.4175 426.4645 303.9182 422.5212 308.2136"></polygon>
+            <rect id="矩形" fill="#FFFFFF" fill-rule="nonzero" x="346.2593" y="256.9142" width="66.0039" height="18.1328"></rect>
+            <text id="locked-key" fill="#000000" fill-rule="nonzero" font-family="Helvetica" font-size="12" font-weight="normal">
+                <tspan x="348.2593" y="270.5157">locked key</tspan>
+            </text>
+            <polyline id="路径" stroke="#000000" points="482.7019 288.5331 480.0355 284.2478 465.1241 265.5015 448.5555 249.3102 430.3297 235.6741 410.4466 224.5933 405.3901 222.5919"></polyline>
+            <polygon id="路径" fill="#000000" fill-rule="nonzero" points="397.9515 219.6477 407.2692 228.7131 406.3199 222.96 410.9495 219.4149"></polygon>
+            <text id="whether" fill="#000000" fill-rule="nonzero" font-family="Helvetica" font-size="12" font-weight="normal">
+                <tspan x="452.3706" y="238.819">whether</tspan>
+            </text>
+            <text id="resolved" fill="#000000" fill-rule="nonzero" font-family="Helvetica" font-size="12" font-weight="normal">
+                <tspan x="451.3247" y="252.9518">resolved</tspan>
+            </text>
+            <polyline id="路径" stroke="#000000" points="475.324 321.9894 465.6874 333.8425 461.6621 340.9159 458.7869 347.9891 457.0618 355.0624 456.4867 362.1357 457.0618 369.209 458.7869 376.2822 461.6621 383.3556 465.6874 390.4288 470.3672 396.1852"></polyline>
+            <polygon id="路径" fill="#000000" fill-rule="nonzero" points="475.4138 402.3926 471.7235 389.9274 469.7363 395.4093 463.9642 396.2356"></polygon>
+            <rect id="矩形" fill="#FFFFFF" fill-rule="nonzero" x="418.9584" y="346.0029" width="75.0566" height="32.2656"></rect>
+            <text id="grpc" fill="#000000" fill-rule="nonzero" font-family="Helvetica" font-size="12" font-weight="normal">
+                <tspan x="443.4408" y="359.6045">grpc</tspan>
+            </text>
+            <text id="ResolveLock" fill="#000000" fill-rule="nonzero" font-family="Helvetica" font-size="12" font-weight="normal">
+                <tspan x="420.9584" y="373.7373">ResolveLock</tspan>
+            </text>
+            <polyline id="路径" stroke="#000000" points="508.5818 402.1162 516.6093 390.4288 522.4392 376.2822 524.3824 362.1357 522.4392 347.9891 516.6093 333.8425 513.187 328.86"></polyline>
+            <polygon id="路径" fill="#000000" fill-rule="nonzero" points="508.6577 322.2656 511.3302 334.9879 513.7532 329.6843 519.5731 329.3263"></polygon>
+            <rect id="矩形" fill="#FFFFFF" fill-rule="nonzero" x="505.8239" y="353.0693" width="37.1172" height="18.1328"></rect>
+            <text id="result" fill="#000000" fill-rule="nonzero" font-family="Helvetica" font-size="12" font-weight="normal">
+                <tspan x="507.8239" y="366.6709">result</tspan>
+            </text>
+            <line x1="413.2631" y1="205.5233" x2="639.2295" y2="201.9088" id="路径" stroke="#000000"></line>
+            <polygon id="路径" fill="#000000" fill-rule="nonzero" points="647.2285 201.7809 635.1501 196.9734 638.2296 201.9248 635.3101 206.9722"></polygon>
+            <rect id="矩形" fill="#FFFFFF" fill-rule="nonzero" x="524.1912" y="194.4071" width="34.4395" height="18.1328"></rect>
+            <text id="value" fill="#000000" fill-rule="nonzero" font-family="Helvetica" font-size="12" font-weight="normal">
+                <tspan x="526.1912" y="208.0087">value</tspan>
+            </text>
+            <line x1="18.489" y1="186.7317" x2="261.951" y2="201.7986" id="路径" stroke="#000000"></line>
+            <polygon id="路径" fill="#000000" fill-rule="nonzero" points="269.9357 202.2927 258.2675 196.561 260.9529 201.7368 257.6498 206.542"></polygon>
+            <text id="key" fill="#000000" fill-rule="nonzero" font-family="Helvetica" font-size="12" font-weight="normal">
+                <tspan x="124.9351" y="198.4723">key</tspan>
+            </text>
+            <polyline id="路径" stroke="#000000" points="506.1008 435.5464 507.0649 437.0889 510.5087 446.2723 511.6566 455.4558 511.3197 458.1506 511.2845 458.2443"></polyline>
+            <polygon id="路径" fill="#000000" fill-rule="nonzero" points="509.9679 466.1351 516.8748 455.1217 511.4492 457.2578 507.0111 453.4758"></polygon>
+            <polyline id="路径" stroke="#000000" points="476.5953 466.0383 476.0707 464.6393 474.9227 455.4558 476.0707 446.2723 477.3344 442.9026 477.3873 442.8177"></polyline>
+            <polygon id="路径" fill="#000000" fill-rule="nonzero" points="477.2963 62 468 71.0873 473.7752 70.2826 477.2029 74.9997"></polygon>
+            <polygon id="路径" fill="#000000" fill-rule="nonzero" points="480.5172 435.4554 471.2209 444.5427 476.9961 443.738 480.4238 448.4551"></polygon>
+        </g>
+    </g>
+</svg>
