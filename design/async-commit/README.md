@@ -152,7 +152,7 @@ The above issue only happens if the transaction prewrite phase is too long, exce
 
 TODO
 
-## Possible optimisations
+## Possible optimizations
 
 There are restrictions on the size of the transaction. For example, if the key involved in the transaction is less than 64, parallel commit is used, or a hierarchical structure is adopted. The primary lock records a few secondary locks, and these secondary locks record other secondary locks respectively. It is easy to implement, just recursion, and the cost of failure recovery needs to be considered.
 
