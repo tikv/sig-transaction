@@ -2,10 +2,10 @@
 
 The transactions special interest group (SIG-transaction) are a group of people interested in transactions in distributed databases. We have a focus on transactions in TiKV and TiDB, but discuss academic work and other implementations too.
 
-The SIG is in the process of starting up and currently does not have any official activity. In the near future we hope to host:
+SIG activites include:
 
 * talks on distributed transactions,
-* a reading group for academic papers,
+* a [reading group](https://github.com/tikv/sig-transaction/issues/68) for academic papers,
 * discussion of transaction research and implementations on Slack,
 * help understanding and configuring transactions in TiKV and TiDB,
 * support for contributors to TiKV and related projects.
