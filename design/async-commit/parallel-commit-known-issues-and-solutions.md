@@ -76,7 +76,7 @@ In the current implementation (where Parallel Commit is not supported), ReadInde
 
 One way to solve this problem, is to let the leader returns `pc_index` after this `pc_index` log is committed if `pc_index` is greater than the commit index. `pc_index` indicates the index of proposed prewrite of Parallel-Commit transactions. This is easy to implement, but increases the latency of follower read, since the follower needs to wait for applying more logs before it's permitted to read. 
 
-Another approach is to let the leader returns both `commit_index` and `pc_index` for ReadIndex, and the follower needs to construct a in-memory lock for received-but-not-yet-committed prewrites, and reads are permitted when the leader's `commit_index` is applied and, additionally, all logs before `pc_index` has been received. Then the read should be blocked if it tries to read keys that has been locked by the in-memory lock we just mentioned. Note that Raft learners also need to do this. If we choose this approach, TiFlash might be exclusive with parallel commit before we support this mechanism on it.
+Another approach is to let the leader returns both `commit_index` and `pc_index` for ReadIndex, and the follower needs to construct a in-memory lock for received-but-not-yet-committed prewrites, and reads are permitted when the leader's `commit_index` is applied and, additionally, all logs before `pc_index` has been received. Then the read should be blocked if it tries to read keys that has been locked by the in-memory lock we just mentioned. Note that Raft learners also need to do this. If we choose this approach, TiFlash might be exclusive with async commit before we support this mechanism on it.
 
 Another solution is ReadIndex carries read_ts and key range and treat it as normal read operations.
 
@@ -122,6 +122,6 @@ Note: If we are using `max_read_ts + 1` to commit instead of `max_ts + 1`, it's 
 
 ## Schema Version Checking
 
-The existing 2pc process checks the schema version before issue the final commit command, if we do parallel commit, we don't have a chance to check the schema version. If it has changed, we may break the index/row consistency.
+The existing 2pc process checks the schema version before issue the final commit command, if we do async commit, we don't have a chance to check the schema version. If it has changed, we may break the index/row consistency.
 
 **TODO: This issue is still to be discussed.**

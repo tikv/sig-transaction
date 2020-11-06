@@ -79,7 +79,7 @@ Moreover, long code paths and jumps are avoided. It's never a problem that depen
 
 ## In-memory lock table
 
-Both the latch and the lock manager stores memory locks and notify when the locks are released. For "parallel commit", we also need another memory locking mechanism. It'll be good to have an integrated locking mechanism handling all these requirements.
+Both the latch and the lock manager stores memory locks and notify when the locks are released. For "async commit", we also need another memory locking mechanism. It'll be good to have an integrated locking mechanism handling all these requirements.
 
 We can use a concurrent ordered map to build a lock table. We map each encoded key to a memory lock. The memory lock contains lock information and waiting lists. Currently we have two kinds of orthogonal waiting list: the latch waiting list and the pessimistic lock waiting list. 
 
@@ -102,9 +102,9 @@ For the lock manager usage, it provides the functionality to add waiters and mod
 
 When a guard is dropped, if neither a lock nor any waiter is in the lock, we can remove the key from the map to save memory.
 
-### Parallel commit
+### Async commit
 
-The "parallel commit" feature can be also implemented with this lock table. During prewrite, the lock is written to the memory lock before it is sent to the raft store. Before any read request start, we read the lock info in the memory lock. If the `min_commit_ts` recorded in the lock is smaller than the snapshot time stamp, we can return a locked error directly.
+The "async commit" feature can be also implemented with this lock table. During prewrite, the lock is written to the memory lock before it is sent to the raft store. Before any read request start, we read the lock info in the memory lock. If the `min_commit_ts` recorded in the lock is smaller than the snapshot time stamp, we can return a locked error directly.
 
 ```rust
 async fn prewrite(&self, req: PrewriteRequest) -> PrewriteResponse {

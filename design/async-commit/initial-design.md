@@ -26,7 +26,7 @@ Please see [this doc](parallel-commit-known-issues-and-solutions.md).
 
 ### TiDB
 
-* The user should opt-in to parallel commit; we assume the user has opted in for all nodes for the rest of this document.
+* The user should opt-in to async commit; we assume the user has opted in for all nodes for the rest of this document.
 * Each prewrite response will include a `min_commit_ts`, TiDB will select the largest `min_commit_ts` as the final `commit_ts` for the transaction.
 * TiDB can return success to the client before sending the commit message but after receiving success responses for all prewrite messages.
 * If an operation fails because it is locked, TiDB must query the primary lock to find a list of secondaries (a `CheckTxnStatus` request). It will then send a `CheckSecondaryLocks` request to each region to get all secondary locks and the `min_commit_ts` in those locks. If all locks in a success state, it can send the commit message as above. If any lock is not present or rolled back, then the transaction should be rolled back.
@@ -46,7 +46,7 @@ See [kvproto/637](https://github.com/pingcap/kvproto/pull/637) and [kvproto/651]
 
 ## Evolution to long term solution
 
-The framework of parallel commit will be in place at the end of the first iteration. In a later iteration we should improve the temporary locking mechanism, See [parallel-commit-solution-ideas.md](parallel-commit-known-issues-and-solutions.md) for possible improvements.
+The framework of async commit will be in place at the end of the first iteration. In a later iteration we should improve the temporary locking mechanism, See [parallel-commit-solution-ideas.md](parallel-commit-known-issues-and-solutions.md) for possible improvements.
 
 ### Open questions
 

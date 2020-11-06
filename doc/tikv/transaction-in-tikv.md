@@ -4,15 +4,19 @@ This doc has some notes on some of the terms and high-level concepts used when d
 
 The TiKV transaction system is based on part of the [Percolator](https://research.google/pubs/pub36726/) system (developed by Google). TiKV has the transactional parts, but not the observer parts of Percolator.
 
-## New and planned technology
+Read more:
 
-These features are not well-documented elsewhere, so should have more in-depth descriptions here.
+* [TiDB docs](https://pingcap.com/docs/stable/transaction-overview/)
+* [TinyKV docs](https://github.com/pingcap-incubator/tinykv/blob/course/doc/project4-Transaction.md)
+* [Xuelian's blog](https://andremouche.github.io/tidb/transaction_in_tidb.html)
 
-* [Pipelined pessimistic transactions]()
-* [Large transactions]()
-* [Green GC]()
-* [Parallel commit]()
-* [1PC]()
+## Principles and foundations
+
+* [Wikipedia article on isolation](https://en.wikipedia.org/wiki/Isolation_(database_systems))
+* [Wikipedia article on snapshot isolation](https://en.wikipedia.org/wiki/Snapshot_isolation)
+* [Jepsen post on consistency](https://jepsen.io/consistency)
+* [Percolator paper](https://research.google/pubs/pub36726/)
+* [Spanner paper](https://static.googleusercontent.com/media/research.google.com/en//archive/spanner-osdi2012.pdf)
 
 ## APIs
 
@@ -43,6 +47,10 @@ TODO pessimistic txns and Read Committed
 ### Interactions
 
 between optimistic and pessimistic txns TODO
+
+Read more:
+
+* [blog post](https://pingcap.com/blog/pessimistic-locking-better-mysql-compatibility-fewer-rollbacks-under-high-load/)
 
 ## MVCC
 
@@ -133,8 +141,19 @@ Even if the commit message sent to the secondary key fails, the lock of a second
 
 This property allows returning success once the primary key is committed. Secondary keys could be committed asynchronously and we don't have to care about the result.
 
+## New and planned technology
+
+These features are not well-documented elsewhere, so should have more in-depth descriptions here.
+
+* [Pipelined pessimistic transactions]()
+* [Large transactions]()
+* [Green GC]()
+* [Async commit]()
+* [1PC]()
 
 ## Glossary
+
+* [Jepsen report](https://jepsen.io/analyses/tidb-2.1.7) on isolation and consistency in TiDB
 
 TODO
 
