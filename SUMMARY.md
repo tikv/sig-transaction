@@ -4,13 +4,13 @@
 
 # Documentation
 
-- [Transactions in TiKV](doc/tikv/transaction-in-tikv.md)
+- [Transactions in TiKV](doc/tikv/README.md)
 - [Transactions handling newbiew perspective](doc/tikv/transaction-handling-newbie-perspective/transaction-handling-newbie-perspective.md)
 
 # Design docs
 
 - [Proposal for refactoring how transactional commands are scheduled and implemented](design/transaction-layer-refactoring.md)
-- [Async commit](design/async-commit/async-commit.md)
+- [Async commit](design/async-commit/README.md)
     - [Project summary](design/async-commit/project-summary.md)
     - [Initial design](design/async-commit/initial-design.md)
     - [Non-unique timestamps](design/async-commit/globally-non-unique-timestamps.md)
