@@ -1,6 +1,6 @@
-# Parallel commit
+# Async commit
 
-This directory contains design documentation for parallel commit. Implementation is in progress, see [project summary](project-summary.md).
+This directory contains design documentation for async commit. Implementation is in progress, see [project summary](project-summary.md).
 
 Implementation is tracked in a [tracking issue](https://github.com/tikv/sig-transaction/issues/36) and [TiKV project](https://github.com/tikv/tikv/projects/34).
 
@@ -106,7 +106,7 @@ A solution is for tikv to maintain a `max_start_ts`. When a prewrite writes its 
 
 The essence of solving this type of problem is to postpone operations that may cause errors until the operation is not an error. Two possible solutions are:
 
-* The region records `min_commit_ts`, which is the smallest `commit_ts` of a prewrite of any parallel commit transaction currently in progress (i.e., between prewrite and commit) may use. Every in-progress transaction must have a `commit_ts >= min_commit_ts`. For every read request to the region, if its `start_ts` is greater than `min_commit_ts`, the read request blocks until `min_commit_ts` is greater than `start_ts`.
+* The region records `min_commit_ts`, which is the smallest `commit_ts` of a prewrite of any async commit transaction currently in progress (i.e., between prewrite and commit) may use. Every in-progress transaction must have a `commit_ts >= min_commit_ts`. For every read request to the region, if its `start_ts` is greater than `min_commit_ts`, the read request blocks until `min_commit_ts` is greater than `start_ts`.
 * The above can be refined by shrinking the granularity from a whole region level to a single key. Two implementation options:
   - The lock is written to memory first, then `max_start_ts` is obtained and then written to raftstore. When reading, first read the lock in the memory. After successfully writing to raftstore, the lock in memory is cleared, and the lock corresponding to the region is cleared when the leader switches.
   - Use rocksdb as the storage medium for memory lock, first write to rocksdb, then write to raftstore. The implementation is also simple, and the effect is the same as a.
@@ -124,7 +124,7 @@ The TiKV approach is faster, but it means we have to get a timestamp from PD and
 ### Replica read
 
 The above Commit Ts calculation does not consider the replica read situation, consider the following scenario:
-The leader's maxStartTs is 1, and parallel commit selects 1 + 1 = 2 as commitTs.
+The leader's maxStartTs is 1, and async commit selects 1 + 1 = 2 as commitTs.
 The startTs of replica read is 3, and it should either see the lock or the data with commitTs of 2. However, due to log replication, replica read may fail to read the lock, which will destroy snapshot isolation.
 
 The solution is the same as prewrite solution 1:
@@ -144,7 +144,7 @@ TODO
 
 ### Schema check
 
-The existing 2pc process checks the schema version before issue the final commit command, if we do parallel commit, we don't have a chance to check the schema version. If it has changed, we may break the index/row consistency.
+The existing 2pc process checks the schema version before issue the final commit command, if we do async commit, we don't have a chance to check the schema version. If it has changed, we may break the index/row consistency.
 
 The above issue only happens if the transaction prewrite phase is too long, exceeds the 2 * ddl_lease time.
 
@@ -154,7 +154,7 @@ TODO
 
 ## Possible optimisations
 
-There are restrictions on the size of the transaction. For example, if the key involved in the transaction is less than 64, parallel commit is used, or a hierarchical structure is adopted. The primary lock records a few secondary locks, and these secondary locks record other secondary locks respectively. It is easy to implement, just recursion, and the cost of failure recovery needs to be considered.
+There are restrictions on the size of the transaction. For example, if the key involved in the transaction is less than 64, async commit is used, or a hierarchical structure is adopted. The primary lock records a few secondary locks, and these secondary locks record other secondary locks respectively. It is easy to implement, just recursion, and the cost of failure recovery needs to be considered.
 
 Crdb mentioned two ways to reduce the impact of recovery, and TiDB has also implemented: one is to perform commit cleanup as soon as possible when committing; the second is transaction heartbeat to prevent cleanup of alive transactions.
 

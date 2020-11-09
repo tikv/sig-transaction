@@ -6,7 +6,7 @@ The urls in this article refers to the code which performs certain operation.
 
 In a system which consists of TiDB and TiKV, the architecture looks like this:
 
-![architecture](transaction-handling-newbie-perspective/architecture.svg)
+![architecture](architecture.svg)
 
 Though client is not part of TiKV, it is also an important to read some code in it to understand how a request is handled. 
 
@@ -183,7 +183,7 @@ And then, the result value is returned. (Finally!)
 
 Let's summerize the process with a dataflow diagram.
 
-![single-point-get-dfd](transaction-handling-newbie-perspective/single-point-get-dfd.svg)
+![single-point-get-dfd](single-point-get-dfd.svg)
 
 ### Scan
 
@@ -254,7 +254,7 @@ TiKV use [`Latches`](https://github.com/tikv/tikv/blob/bf716a111fde9fe8da56f8bd8
 
 The latches is used in [`try_to_wake_up`](https://github.com/tikv/tikv/blob/bf716a111fde9fe8da56f8bd840c53d80c395525/src/storage/txn/scheduler.rs#L335) , this is called before each command is executed, it will lock all the latches the commands used.
 
-![prewrite-dfd](transaction-handling-newbie-perspective/prewrite-dfd.svg)
+![prewrite-dfd](prewrite-dfd.svg)
 
 #### PrewritePessimistic
 

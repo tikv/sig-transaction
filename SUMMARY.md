@@ -1,11 +1,11 @@
 # Summary
 
-- [Repo information](README.md)
+- [Intro](README.md)
 
 # Documentation
 
-- [Transactions overview](doc/README.md)
 - [Transactions in TiKV](doc/tikv/README.md)
+- [Transactions handling newbiew perspective](doc/tikv/transaction-handling-newbie-perspective/transaction-handling-newbie-perspective.md)
 
 # Design docs
 
