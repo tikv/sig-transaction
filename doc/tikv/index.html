@@ -1,0 +1,340 @@
+<!DOCTYPE HTML>
+<html lang="en" class="sidebar-visible no-js light">
+    <head>
+        <!-- Book generated using mdBook -->
+        <meta charset="UTF-8">
+        <title>Transactions in TiKV - TiKV sig-transaction documentation</title>
+        
+        
+
+
+        <!-- Custom HTML head -->
+        
+
+
+        <meta content="text/html; charset=utf-8" http-equiv="Content-Type">
+        <meta name="description" content="Documentation of distributed transactions in TiDB and TiKV. Includes some coverage of general distributed transaction topics.">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta name="theme-color" content="#ffffff" />
+
+        <link rel="icon" href="../../favicon.svg">
+        <link rel="shortcut icon" href="../../favicon.png">
+        <link rel="stylesheet" href="../../css/variables.css">
+        <link rel="stylesheet" href="../../css/general.css">
+        <link rel="stylesheet" href="../../css/chrome.css">
+        <link rel="stylesheet" href="../../css/print.css" media="print">
+
+        <!-- Fonts -->
+        <link rel="stylesheet" href="../../FontAwesome/css/font-awesome.css">
+        
+        <link rel="stylesheet" href="../../fonts/fonts.css">
+        
+
+        <!-- Highlight.js Stylesheets -->
+        <link rel="stylesheet" href="../../highlight.css">
+        <link rel="stylesheet" href="../../tomorrow-night.css">
+        <link rel="stylesheet" href="../../ayu-highlight.css">
+
+        <!-- Custom theme stylesheets -->
+        
+
+        
+    </head>
+    <body>
+        <!-- Provide site root to javascript -->
+        <script type="text/javascript">
+            var path_to_root = "../../";
+            var default_theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? "navy" : "light";
+        </script>
+
+        <!-- Work around some values being stored in localStorage wrapped in quotes -->
+        <script type="text/javascript">
+            try {
+                var theme = localStorage.getItem('mdbook-theme');
+                var sidebar = localStorage.getItem('mdbook-sidebar');
+
+                if (theme.startsWith('"') && theme.endsWith('"')) {
+                    localStorage.setItem('mdbook-theme', theme.slice(1, theme.length - 1));
+                }
+
+                if (sidebar.startsWith('"') && sidebar.endsWith('"')) {
+                    localStorage.setItem('mdbook-sidebar', sidebar.slice(1, sidebar.length - 1));
+                }
+            } catch (e) { }
+        </script>
+
+        <!-- Set the theme before any content is loaded, prevents flash -->
+        <script type="text/javascript">
+            var theme;
+            try { theme = localStorage.getItem('mdbook-theme'); } catch(e) { }
+            if (theme === null || theme === undefined) { theme = default_theme; }
+            var html = document.querySelector('html');
+            html.classList.remove('no-js')
+            html.classList.remove('light')
+            html.classList.add(theme);
+            html.classList.add('js');
+        </script>
+
+        <!-- Hide / unhide sidebar before it is displayed -->
+        <script type="text/javascript">
+            var html = document.querySelector('html');
+            var sidebar = 'hidden';
+            if (document.body.clientWidth >= 1080) {
+                try { sidebar = localStorage.getItem('mdbook-sidebar'); } catch(e) { }
+                sidebar = sidebar || 'visible';
+            }
+            html.classList.remove('sidebar-visible');
+            html.classList.add("sidebar-" + sidebar);
+        </script>
+
+        <nav id="sidebar" class="sidebar" aria-label="Table of contents">
+            <div class="sidebar-scrollbox">
+                <ol class="chapter"><li class="chapter-item expanded "><a href="../../index.html"><strong aria-hidden="true">1.</strong> Intro</a></li><li class="chapter-item expanded affix "><li class="part-title">Documentation</li><li class="chapter-item expanded "><a href="../../doc/tikv/index.html" class="active"><strong aria-hidden="true">2.</strong> Transactions in TiKV</a></li><li class="chapter-item expanded "><a href="../../doc/tikv/transaction-handling-newbie-perspective/transaction-handling-newbie-perspective.html"><strong aria-hidden="true">3.</strong> Transactions handling newbiew perspective</a></li><li class="chapter-item expanded affix "><li class="part-title">Design docs</li><li class="chapter-item expanded "><a href="../../design/transaction-layer-refactoring.html"><strong aria-hidden="true">4.</strong> Proposal for refactoring how transactional commands are scheduled and implemented</a></li><li class="chapter-item expanded "><a href="../../design/async-commit/index.html"><strong aria-hidden="true">5.</strong> Async commit</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="../../design/async-commit/project-summary.html"><strong aria-hidden="true">5.1.</strong> Project summary</a></li><li class="chapter-item expanded "><a href="../../design/async-commit/initial-design.html"><strong aria-hidden="true">5.2.</strong> Initial design</a></li><li class="chapter-item expanded "><a href="../../design/async-commit/globally-non-unique-timestamps.html"><strong aria-hidden="true">5.3.</strong> Non-unique timestamps</a></li><li class="chapter-item expanded "><a href="../../design/async-commit/replica-read.html"><strong aria-hidden="true">5.4.</strong> Replica read</a></li><li class="chapter-item expanded "><a href="../../design/async-commit/parallel-commit-known-issues-and-solutions.html"><strong aria-hidden="true">5.5.</strong> Known issues</a></li></ol></li></ol>
+            </div>
+            <div id="sidebar-resize-handle" class="sidebar-resize-handle"></div>
+        </nav>
+
+        <div id="page-wrapper" class="page-wrapper">
+
+            <div class="page">
+                
+                <div id="menu-bar-hover-placeholder"></div>
+                <div id="menu-bar" class="menu-bar sticky bordered">
+                    <div class="left-buttons">
+                        <button id="sidebar-toggle" class="icon-button" type="button" title="Toggle Table of Contents" aria-label="Toggle Table of Contents" aria-controls="sidebar">
+                            <i class="fa fa-bars"></i>
+                        </button>
+                        <button id="theme-toggle" class="icon-button" type="button" title="Change theme" aria-label="Change theme" aria-haspopup="true" aria-expanded="false" aria-controls="theme-list">
+                            <i class="fa fa-paint-brush"></i>
+                        </button>
+                        <ul id="theme-list" class="theme-popup" aria-label="Themes" role="menu">
+                            <li role="none"><button role="menuitem" class="theme" id="light">Light (default)</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="rust">Rust</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="coal">Coal</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="navy">Navy</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="ayu">Ayu</button></li>
+                        </ul>
+                        
+                        <button id="search-toggle" class="icon-button" type="button" title="Search. (Shortkey: s)" aria-label="Toggle Searchbar" aria-expanded="false" aria-keyshortcuts="S" aria-controls="searchbar">
+                            <i class="fa fa-search"></i>
+                        </button>
+                        
+                    </div>
+
+                    <h1 class="menu-title">TiKV sig-transaction documentation</h1>
+
+                    <div class="right-buttons">
+                        <a href="../../print.html" title="Print this book" aria-label="Print this book">
+                            <i id="print-button" class="fa fa-print"></i>
+                        </a>
+                        
+                        <a href="https://github.com/tikv/sig-transaction" title="Git repository" aria-label="Git repository">
+                            <i id="git-repository-button" class="fa fa-github"></i>
+                        </a>
+                        
+                    </div>
+                </div>
+
+                
+                <div id="search-wrapper" class="hidden">
+                    <form id="searchbar-outer" class="searchbar-outer">
+                        <input type="search" name="search" id="searchbar" name="searchbar" placeholder="Search this book ..." aria-controls="searchresults-outer" aria-describedby="searchresults-header">
+                    </form>
+                    <div id="searchresults-outer" class="searchresults-outer hidden">
+                        <div id="searchresults-header" class="searchresults-header"></div>
+                        <ul id="searchresults">
+                        </ul>
+                    </div>
+                </div>
+                
+
+                <!-- Apply ARIA attributes after the sidebar and the sidebar toggle button are added to the DOM -->
+                <script type="text/javascript">
+                    document.getElementById('sidebar-toggle').setAttribute('aria-expanded', sidebar === 'visible');
+                    document.getElementById('sidebar').setAttribute('aria-hidden', sidebar !== 'visible');
+                    Array.from(document.querySelectorAll('#sidebar a')).forEach(function(link) {
+                        link.setAttribute('tabIndex', sidebar === 'visible' ? 0 : -1);
+                    });
+                </script>
+
+                <div id="content" class="content">
+                    <main>
+                        <h1><a class="header" href="#transactions-in-tikv" id="transactions-in-tikv">Transactions in TiKV</a></h1>
+<p>This doc has some notes on some of the terms and high-level concepts used when discussing transactions in TiKV. It is work in progress, and not yet in-depth.</p>
+<p>The TiKV transaction system is based on part of the <a href="https://research.google/pubs/pub36726/">Percolator</a> system (developed by Google). TiKV has the transactional parts, but not the observer parts of Percolator.</p>
+<p>Read more:</p>
+<ul>
+<li><a href="https://pingcap.com/docs/stable/transaction-overview/">TiDB docs</a></li>
+<li><a href="https://github.com/pingcap-incubator/tinykv/blob/course/doc/project4-Transaction.md">TinyKV docs</a></li>
+<li><a href="https://andremouche.github.io/tidb/transaction_in_tidb.html">Xuelian's blog</a></li>
+</ul>
+<h2><a class="header" href="#principles-and-foundations" id="principles-and-foundations">Principles and foundations</a></h2>
+<ul>
+<li><a href="https://en.wikipedia.org/wiki/Isolation_(database_systems)">Wikipedia article on isolation</a></li>
+<li><a href="https://en.wikipedia.org/wiki/Snapshot_isolation">Wikipedia article on snapshot isolation</a></li>
+<li><a href="https://jepsen.io/consistency">Jepsen post on consistency</a></li>
+<li><a href="https://research.google/pubs/pub36726/">Percolator paper</a></li>
+<li><a href="https://static.googleusercontent.com/media/research.google.com/en//archive/spanner-osdi2012.pdf">Spanner paper</a></li>
+</ul>
+<h2><a class="header" href="#apis" id="apis">APIs</a></h2>
+<p>TiKV offers three kinds of API: raw, transactional, and <a href="https://github.com/tikv/rfcs/blob/master/text/2020-03-11-versioned-kv.md">versioned</a> (which is still in development).</p>
+<p>The raw API gives direct access to the keys and values in TiKV. It does not offer any transactional guarantees.</p>
+<p>The transactional API encodes data using MVCC (see below). By collaborating between the client and the TiKV server, we can offer ACID transactions.</p>
+<p>There is nothing preventing a client using both APIs, however, this is not a supported use case and if you do this you have to be very, very careful in order to not break the guarantees of the transactional API.</p>
+<h2><a class="header" href="#reads-and-writes" id="reads-and-writes">Reads and writes</a></h2>
+<p>When discussing transactions, we usually talk about <em>reads</em> and <em>writes</em>. In this context, a 'write' could be any kind of modifying operation: creating, modifying, or deleting a value. In some places these operations are treated differently, but usually we just care about whether an operation modifies (a write) or doesn't modify (a read) the data.</p>
+<h2><a class="header" href="#two-phase-commit" id="two-phase-commit">Two-phase commit</a></h2>
+<p>TODO</p>
+<h2><a class="header" href="#optimistic-and-pessimistic-transactions" id="optimistic-and-pessimistic-transactions">Optimistic and pessimistic transactions</a></h2>
+<p>TiKV supports two transaction models. Optimistic transactions were implemented first and often when TiKV folks don't specify optimistic or pessimistic, they mean optimistic by default. In the optimistic model, reads and writes are built up locally. All writes are sent together in a prewrite. During prewrite, all keys to be written are locked. If any keys are locked by another transaction, return to client. If all prewrites succeed, the client sends a commit message.</p>
+<p>Pessimistic transactions are the default in TiKV since 3.0.8. In the pessimistic model, there are <em>locking reads</em> (from <code>SELECT ... FOR UPDATE</code> statements), these read a value and lock the key. This means that reads can block. SQL statements which cause writes, lock the keys as they are executed. Writing to the keys is still postponed until prewrite. Prewrite and commit works</p>
+<p>TODO pessimistic txns and Read Committed</p>
+<h3><a class="header" href="#interactions" id="interactions">Interactions</a></h3>
+<p>between optimistic and pessimistic txns TODO</p>
+<p>Read more:</p>
+<ul>
+<li><a href="https://pingcap.com/blog/pessimistic-locking-better-mysql-compatibility-fewer-rollbacks-under-high-load/">blog post</a></li>
+</ul>
+<h2><a class="header" href="#mvcc" id="mvcc">MVCC</a></h2>
+<p>TODO</p>
+<h2><a class="header" href="#consistency-and-isolation-properties" id="consistency-and-isolation-properties">Consistency and isolation properties</a></h2>
+<p>TODO</p>
+<h2><a class="header" href="#timestamps" id="timestamps">Timestamps</a></h2>
+<p>TODO what are timestamps? How are they represented, used, generated? AKA ts, version</p>
+<h3><a class="header" href="#some-timestamps-used-in-transactions" id="some-timestamps-used-in-transactions">Some timestamps used in transactions</a></h3>
+<ul>
+<li><code>start_ts</code>: when the client starts to build the commit; used to identify a transaction.</li>
+<li><code>commit_ts</code>: after successful prewrite, before commit phase.</li>
+<li><code>for_update_ts</code>: TODO</li>
+<li><code>min_commit_ts</code>: TODO </li>
+<li><code>current_ts</code>: TODO</li>
+</ul>
+<h2><a class="header" href="#regions" id="regions">Regions</a></h2>
+<p>TODO</p>
+<h2><a class="header" href="#deadlock-detection" id="deadlock-detection">Deadlock detection</a></h2>
+<p>TODO</p>
+<h2><a class="header" href="#gc" id="gc">GC</a></h2>
+<p>TODO</p>
+<h2><a class="header" href="#retries" id="retries">Retries</a></h2>
+<p>TODO</p>
+<h2><a class="header" href="#constraints-and-assumptions" id="constraints-and-assumptions">Constraints and assumptions</a></h2>
+<p>TODO for each: why? implications, benefits</p>
+<h3><a class="header" href="#timestamps-are-supplied-by-the-client" id="timestamps-are-supplied-by-the-client">Timestamps are supplied by the client</a></h3>
+<p>This decision benefits &quot;user experience&quot;, performance and simplicity.</p>
+<p>First, it gives users more control over the order of concurrent transactions.</p>
+<p>For example, a client commits two transactions: T1 and then T2. 
+If timestamps are supplied by the user, it can assure that T1 won't read any effects of T2 if T1's timestamp is smaller than T2's.
+While if we let TiKV get the timestamp, the user cannot get this guarantee because the order of processing T1 and T2 is nondeterministic.</p>
+<p>Second, it simplifies the system. Otherwise we have to let TiKV maintain states of all active transactions. </p>
+<p>Third, it is beneficial for performance. Large volume of transactions could overburden TiKV server. In addition, GC of inactive transactions is a problem.</p>
+<p>TODO: further elaboration</p>
+<h3><a class="header" href="#all-timestamps-are-unique" id="all-timestamps-are-unique">All timestamps are unique</a></h3>
+<p>TODO</p>
+<p>It's true in previous versions of TiKV. Enabling 1PC or Async commit features could break this guarantee.</p>
+<p>Multiple transactions may have identical commit timestamps. Start timestamps are still unique. One transaction must have distinct start_ts and commit_ts, unless it's rolled back. The commit_ts of a rollback record is the start_ts.</p>
+<h3><a class="header" href="#from-a-users-perspective-reads-never-fail-but-might-have-to-wait" id="from-a-users-perspective-reads-never-fail-but-might-have-to-wait">From a user's perspective, reads never fail but might have to wait</a></h3>
+<p>Reads never fail in the read committed level. The client will always read the most recent committed version.</p>
+<p>Read requests can return <code>KeyError</code> in the snapshot isolation level if the key is locked with <code>lock_ts</code> &lt; <code>read_ts</code>. Then the client can try to resolve the lock and retry until it succeeds.</p>
+<h3><a class="header" href="#the-transaction-layer-does-not-know-about-region-topology-in-particular-it-does-not-treat-regions-on-the-same-node-differently-to-other-regions" id="the-transaction-layer-does-not-know-about-region-topology-in-particular-it-does-not-treat-regions-on-the-same-node-differently-to-other-regions">The transaction layer does not know about region topology, in particular, it does not treat regions on the same node differently to other regions</a></h3>
+<p>A TiKV instance does not have to know the topology. 
+The whole span of data is partitioned into regions. Each TiKV instance will only accept requests involving data lying in its regions. The client makes sure any request is sent to the right TiKV node that owns the data the request needs.</p>
+<p>The design decouples transaction logic and physical data distribution. It makes shceduling more flexible and elastic. 
+Imagine a redistribution of regions among a TiKV cluster that does not require any downtime or maintainance to either clients or TiKV instances.
+PD as the scheduler can ask TiKV to redistribute regions, and send the latest region info to clients.</p>
+<p>The overhead caused by such decoupling is extra network communication. Though clients must acquire regions' and TiKV stores' addresses from PD, these information be cached locally. If topology changes, client may failed some request and retry to refresh its cache. A long-live client should suffer little from it.</p>
+<h3><a class="header" href="#if-committing-the-primary-key-succeeds-then-committing-the-secondary-keys-will-never-fail" id="if-committing-the-primary-key-succeeds-then-committing-the-secondary-keys-will-never-fail">If committing the primary key succeeds, then committing the secondary keys will never fail.</a></h3>
+<p>Even if the commit message sent to the secondary key fails, the lock of a secondary key contains information of its primary key. Any transaction that meets the lock can recognize its state by reading the primary key and help commit the secondary key.</p>
+<p>This property allows returning success once the primary key is committed. Secondary keys could be committed asynchronously and we don't have to care about the result.</p>
+<h2><a class="header" href="#new-and-planned-technology" id="new-and-planned-technology">New and planned technology</a></h2>
+<p>These features are not well-documented elsewhere, so should have more in-depth descriptions here.</p>
+<ul>
+<li><a href="">Pipelined pessimistic transactions</a></li>
+<li><a href="">Large transactions</a></li>
+<li><a href="">Green GC</a></li>
+<li><a href="">Async commit</a></li>
+<li><a href="">1PC</a></li>
+</ul>
+<h2><a class="header" href="#glossary" id="glossary">Glossary</a></h2>
+<ul>
+<li><a href="https://jepsen.io/analyses/tidb-2.1.7">Jepsen report</a> on isolation and consistency in TiDB</li>
+</ul>
+<p>TODO</p>
+<ul>
+<li>Column family (CF)</li>
+<li>Prewrite</li>
+<li>Commit</li>
+<li>1PC</li>
+<li>two-phase commit (2PC)</li>
+<li>Rollback</li>
+<li>Resolve lock</li>
+<li>Write conflict</li>
+</ul>
+
+                    </main>
+
+                    <nav class="nav-wrapper" aria-label="Page navigation">
+                        <!-- Mobile navigation buttons -->
+                        
+                            <a rel="prev" href="../../index.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                                <i class="fa fa-angle-left"></i>
+                            </a>
+                        
+
+                        
+                            <a rel="next" href="../../doc/tikv/transaction-handling-newbie-perspective/transaction-handling-newbie-perspective.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                                <i class="fa fa-angle-right"></i>
+                            </a>
+                        
+
+                        <div style="clear: both"></div>
+                    </nav>
+                </div>
+            </div>
+
+            <nav class="nav-wide-wrapper" aria-label="Page navigation">
+                
+                    <a rel="prev" href="../../index.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                        <i class="fa fa-angle-left"></i>
+                    </a>
+                
+
+                
+                    <a rel="next" href="../../doc/tikv/transaction-handling-newbie-perspective/transaction-handling-newbie-perspective.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                        <i class="fa fa-angle-right"></i>
+                    </a>
+                
+            </nav>
+
+        </div>
+
+        
+
+        
+
+        
+
+        
+        <script type="text/javascript">
+            window.playground_copyable = true;
+        </script>
+        
+
+        
+
+        
+        <script src="../../elasticlunr.min.js" type="text/javascript" charset="utf-8"></script>
+        <script src="../../mark.min.js" type="text/javascript" charset="utf-8"></script>
+        <script src="../../searcher.js" type="text/javascript" charset="utf-8"></script>
+        
+
+        <script src="../../clipboard.min.js" type="text/javascript" charset="utf-8"></script>
+        <script src="../../highlight.js" type="text/javascript" charset="utf-8"></script>
+        <script src="../../book.js" type="text/javascript" charset="utf-8"></script>
+
+        <!-- Custom JS scripts -->
+        
+
+        
+
+    </body>
+</html>

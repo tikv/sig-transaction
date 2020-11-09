@@ -1,0 +1,299 @@
+<!DOCTYPE HTML>
+<html lang="en" class="sidebar-visible no-js light">
+    <head>
+        <!-- Book generated using mdBook -->
+        <meta charset="UTF-8">
+        <title>Known issues - TiKV sig-transaction documentation</title>
+        
+        
+
+
+        <!-- Custom HTML head -->
+        
+
+
+        <meta content="text/html; charset=utf-8" http-equiv="Content-Type">
+        <meta name="description" content="Documentation of distributed transactions in TiDB and TiKV. Includes some coverage of general distributed transaction topics.">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta name="theme-color" content="#ffffff" />
+
+        <link rel="icon" href="../../favicon.svg">
+        <link rel="shortcut icon" href="../../favicon.png">
+        <link rel="stylesheet" href="../../css/variables.css">
+        <link rel="stylesheet" href="../../css/general.css">
+        <link rel="stylesheet" href="../../css/chrome.css">
+        <link rel="stylesheet" href="../../css/print.css" media="print">
+
+        <!-- Fonts -->
+        <link rel="stylesheet" href="../../FontAwesome/css/font-awesome.css">
+        
+        <link rel="stylesheet" href="../../fonts/fonts.css">
+        
+
+        <!-- Highlight.js Stylesheets -->
+        <link rel="stylesheet" href="../../highlight.css">
+        <link rel="stylesheet" href="../../tomorrow-night.css">
+        <link rel="stylesheet" href="../../ayu-highlight.css">
+
+        <!-- Custom theme stylesheets -->
+        
+
+        
+    </head>
+    <body>
+        <!-- Provide site root to javascript -->
+        <script type="text/javascript">
+            var path_to_root = "../../";
+            var default_theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? "navy" : "light";
+        </script>
+
+        <!-- Work around some values being stored in localStorage wrapped in quotes -->
+        <script type="text/javascript">
+            try {
+                var theme = localStorage.getItem('mdbook-theme');
+                var sidebar = localStorage.getItem('mdbook-sidebar');
+
+                if (theme.startsWith('"') && theme.endsWith('"')) {
+                    localStorage.setItem('mdbook-theme', theme.slice(1, theme.length - 1));
+                }
+
+                if (sidebar.startsWith('"') && sidebar.endsWith('"')) {
+                    localStorage.setItem('mdbook-sidebar', sidebar.slice(1, sidebar.length - 1));
+                }
+            } catch (e) { }
+        </script>
+
+        <!-- Set the theme before any content is loaded, prevents flash -->
+        <script type="text/javascript">
+            var theme;
+            try { theme = localStorage.getItem('mdbook-theme'); } catch(e) { }
+            if (theme === null || theme === undefined) { theme = default_theme; }
+            var html = document.querySelector('html');
+            html.classList.remove('no-js')
+            html.classList.remove('light')
+            html.classList.add(theme);
+            html.classList.add('js');
+        </script>
+
+        <!-- Hide / unhide sidebar before it is displayed -->
+        <script type="text/javascript">
+            var html = document.querySelector('html');
+            var sidebar = 'hidden';
+            if (document.body.clientWidth >= 1080) {
+                try { sidebar = localStorage.getItem('mdbook-sidebar'); } catch(e) { }
+                sidebar = sidebar || 'visible';
+            }
+            html.classList.remove('sidebar-visible');
+            html.classList.add("sidebar-" + sidebar);
+        </script>
+
+        <nav id="sidebar" class="sidebar" aria-label="Table of contents">
+            <div class="sidebar-scrollbox">
+                <ol class="chapter"><li class="chapter-item expanded "><a href="../../index.html"><strong aria-hidden="true">1.</strong> Intro</a></li><li class="chapter-item expanded affix "><li class="part-title">Documentation</li><li class="chapter-item expanded "><a href="../../doc/tikv/index.html"><strong aria-hidden="true">2.</strong> Transactions in TiKV</a></li><li class="chapter-item expanded "><a href="../../doc/tikv/transaction-handling-newbie-perspective/transaction-handling-newbie-perspective.html"><strong aria-hidden="true">3.</strong> Transactions handling newbiew perspective</a></li><li class="chapter-item expanded affix "><li class="part-title">Design docs</li><li class="chapter-item expanded "><a href="../../design/transaction-layer-refactoring.html"><strong aria-hidden="true">4.</strong> Proposal for refactoring how transactional commands are scheduled and implemented</a></li><li class="chapter-item expanded "><a href="../../design/async-commit/index.html"><strong aria-hidden="true">5.</strong> Async commit</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="../../design/async-commit/project-summary.html"><strong aria-hidden="true">5.1.</strong> Project summary</a></li><li class="chapter-item expanded "><a href="../../design/async-commit/initial-design.html"><strong aria-hidden="true">5.2.</strong> Initial design</a></li><li class="chapter-item expanded "><a href="../../design/async-commit/globally-non-unique-timestamps.html"><strong aria-hidden="true">5.3.</strong> Non-unique timestamps</a></li><li class="chapter-item expanded "><a href="../../design/async-commit/replica-read.html"><strong aria-hidden="true">5.4.</strong> Replica read</a></li><li class="chapter-item expanded "><a href="../../design/async-commit/parallel-commit-known-issues-and-solutions.html" class="active"><strong aria-hidden="true">5.5.</strong> Known issues</a></li></ol></li></ol>
+            </div>
+            <div id="sidebar-resize-handle" class="sidebar-resize-handle"></div>
+        </nav>
+
+        <div id="page-wrapper" class="page-wrapper">
+
+            <div class="page">
+                
+                <div id="menu-bar-hover-placeholder"></div>
+                <div id="menu-bar" class="menu-bar sticky bordered">
+                    <div class="left-buttons">
+                        <button id="sidebar-toggle" class="icon-button" type="button" title="Toggle Table of Contents" aria-label="Toggle Table of Contents" aria-controls="sidebar">
+                            <i class="fa fa-bars"></i>
+                        </button>
+                        <button id="theme-toggle" class="icon-button" type="button" title="Change theme" aria-label="Change theme" aria-haspopup="true" aria-expanded="false" aria-controls="theme-list">
+                            <i class="fa fa-paint-brush"></i>
+                        </button>
+                        <ul id="theme-list" class="theme-popup" aria-label="Themes" role="menu">
+                            <li role="none"><button role="menuitem" class="theme" id="light">Light (default)</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="rust">Rust</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="coal">Coal</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="navy">Navy</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="ayu">Ayu</button></li>
+                        </ul>
+                        
+                        <button id="search-toggle" class="icon-button" type="button" title="Search. (Shortkey: s)" aria-label="Toggle Searchbar" aria-expanded="false" aria-keyshortcuts="S" aria-controls="searchbar">
+                            <i class="fa fa-search"></i>
+                        </button>
+                        
+                    </div>
+
+                    <h1 class="menu-title">TiKV sig-transaction documentation</h1>
+
+                    <div class="right-buttons">
+                        <a href="../../print.html" title="Print this book" aria-label="Print this book">
+                            <i id="print-button" class="fa fa-print"></i>
+                        </a>
+                        
+                        <a href="https://github.com/tikv/sig-transaction" title="Git repository" aria-label="Git repository">
+                            <i id="git-repository-button" class="fa fa-github"></i>
+                        </a>
+                        
+                    </div>
+                </div>
+
+                
+                <div id="search-wrapper" class="hidden">
+                    <form id="searchbar-outer" class="searchbar-outer">
+                        <input type="search" name="search" id="searchbar" name="searchbar" placeholder="Search this book ..." aria-controls="searchresults-outer" aria-describedby="searchresults-header">
+                    </form>
+                    <div id="searchresults-outer" class="searchresults-outer hidden">
+                        <div id="searchresults-header" class="searchresults-header"></div>
+                        <ul id="searchresults">
+                        </ul>
+                    </div>
+                </div>
+                
+
+                <!-- Apply ARIA attributes after the sidebar and the sidebar toggle button are added to the DOM -->
+                <script type="text/javascript">
+                    document.getElementById('sidebar-toggle').setAttribute('aria-expanded', sidebar === 'visible');
+                    document.getElementById('sidebar').setAttribute('aria-hidden', sidebar !== 'visible');
+                    Array.from(document.querySelectorAll('#sidebar a')).forEach(function(link) {
+                        link.setAttribute('tabIndex', sidebar === 'visible' ? 0 : -1);
+                    });
+                </script>
+
+                <div id="content" class="content">
+                    <main>
+                        <h1><a class="header" href="#parallel-commit-known-issues-and-solutions" id="parallel-commit-known-issues-and-solutions">Parallel Commit Known Issues and Solutions</a></h1>
+<p>We have many difficulties to overcome in order to implement Parallel Commit. This document includes ideas to solve them.</p>
+<h2><a class="header" href="#one-phase-writing-locking-problem" id="one-phase-writing-locking-problem">One-phase Writing Locking Problem</a></h2>
+<p>In a Parallel-Commit transaction, once all prewrites is succeeded, we say the transaction is successfully committed. The commit_ts of a transaction <code>T</code> should be greater than all reads on <code>T</code>'s keys that happens before <code>T</code>'s prewrite operations, and less than transactions that starts after <code>T</code> committing.</p>
+<p>We cannot asynchronously allocate a TSO as transaction <code>T</code>'s commit_ts after telling the client that the transaction has been finished, because it's possible that the client runs faster and got a earlier TSO to start its next transaction <code>T2</code>, so that in <code>T2</code>'s sight the previous transaction <code>T</code> didn't commit.</p>
+<p>Neither can we tell the client <code>T</code> has been committed just after allocating TSO as <code>T</code>'s commit_ts. Because if server crashes it will never know what TS it has allocated, and it can not find the proper commit_ts anymore.</p>
+<p>Actually, we believe we should persist some information that helps us in finding the commit_ts, and it should have been persisted when the transaction has been &quot;successfully committed&quot;. Our current idea is persist <code>max_read_ts</code> into the lock that we prewrites, and the final commit_ts will be <code>max_over_all_keys{max_read_ts, start_ts, _for_update_ts}+1</code>. However it's hard: we need to get the current value of <code>max_read_ts</code> before writing down the locks, however new reads may happens between getting <code>max_read_ts</code> and successfully writing down the lock.</p>
+<p>We may have no perfect solution to this problem, but we have came up with some ideas that may be possible to solve it. We have a basic idea that we need to block reads with larger ts between getting <code>max_read_ts</code> and finishing writing it down. Basically, we maintain a <code>max_read_ts</code> and a memory-lock-like structure for each region  (more clearly, each leader region on the current TiKV). When a region's leader or epoch changed, the new leader should re-initialize the <code>max_read_ts</code> and the memory-lock-like structure. The <code>max_read_ts</code> should be initialized from a newest TSO and <strong>it's recorded <code>max_read_ts</code> is not valid until before getting the TSO</strong>.</p>
+<p>We have some different ideas for the memory-lock-like structure. They can all be abstracted like:</p>
+<pre><pre class="playground"><code class="language-rust edition2018">
+<span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>trait MemLock: Send + Sync {
+    // Returns max_read_ts which is fetched after acquiring lock.
+    fn lock_for_write(&amp;self, keys: &amp;[Key], start_ts: TimeStamp, ...) -&gt; Result&lt;TimeStamp&gt;;
+    fn unlock_for_write(&amp;self, keys: &amp;[Key], start_ts: TimeStamp, ...);
+    // Update max_read_ts and then check if the keys/ranges is locked
+    fn check_lock_for_read(&amp;self, keys: &amp;[Key], start_ts: TimeStamp, ...) -&gt; ...;
+    fn check_lock_for_scan(&amp;self, start_key: &amp;Key, end_key: &amp;Key, start_ts: TimeStamp, ...) -&gt; ...;
+}
+<span class="boring">}
+</span></code></pre></pre>
+<h3><a class="header" href="#idea-1-key-based-memory-lock" id="idea-1-key-based-memory-lock">Idea 1: Key-Based Memory Lock</a></h3>
+<p>When we got the max read ts as <code>M</code> and then prewriting key <code>K</code> with max read ts <code>M</code>, we want to prevent other transactions from reading <code>K</code> with a ts larger than <code>M</code>. The most straightforward way is to make a in-memory lock: A Parallel-Commit prewrite should lock the keys it want to write, before reading the <code>max_read_ts</code>, and release the lock after finishing prewrite. A read operation should check the memory lock after updating <code>max_read_ts</code> and should be blocked (or return a KeyIsLocked error) when it meets the memory lock. Read operations don't need to actually acquire locks. It can proceed reading if it finds that the keys it wants to read are not locked.</p>
+<p>The memory lock should support range-based queries, because a reading operation may need to scan a range. So the memory lock should be implemented by an ordered map (like BTreeMap, Trie, SkipList).</p>
+<p>Therefore, the major difficulty of memory lock solution is that how to keep the performance.</p>
+<h3><a class="header" href="#idea-2-rocksdb-based-lock-by-gengliqi" id="idea-2-rocksdb-based-lock-by-gengliqi">Idea 2: RocksDB-Based Lock (By @gengliqi)</a></h3>
+<p>This idea differs from <a href="#idea-1-key-based-memory-lock">Idea1</a>, only in that we are using RocksDB instead of an in-memory data structure to store locks. We avoid most performance impact if we can put it directly to LOCK_CF without Raft replication, however, it might introduce too many corner cases and troubles to resolve, considering that there are leader changing and region scheduling in TiKV. Therefore we may add a new CF to store these kind of locks. The performance comparing to <a href="#idea-1-key-based-memory-lock">Idea1</a> is uncertain before we actually do a POC test.</p>
+<h3><a class="header" href="#idea-3-transaction-list-by-little-wallace" id="idea-3-transaction-list-by-little-wallace">Idea 3: Transaction List (By @Little-Wallace)</a></h3>
+<p>For prewrite operations that need to exclude readings, add add them to a vector <code>V</code>. The <code>max_read_ts</code> should be acquired after the prewrite operation locks the latch of scheduler and adding itself to <code>V</code>.</p>
+<p>For point-get operations, access latch to see if the key is being prewritten with a smaller ts (prewrites of Parallel Commit transactions need to add its special information to the latch slot when it acquires the latch). If so, block or return KeyIsLocked err. For range scanning operations, check each items in <code>V</code> to see if their range overlaps. If so, block or return KeyIsLocked err.</p>
+<h3><a class="header" href="#idea-4-optimized-key-based-memory-lock-by-little-wallace" id="idea-4-optimized-key-based-memory-lock-by-little-wallace">Idea 4: Optimized Key-Based Memory Lock (By @Little-Wallace)</a></h3>
+<p>The memlock consists of a lock-free ordered map like Idea 1 (for scanning request to check locks in range) and the latch of transaction scheduler like Idea 3 (for point getting requests).</p>
+<p>A prewrite of Parallel Commit transaction can get the <code>max_read_ts</code> first and then save the <code>max_read_ts</code> to the locks (both in the ordered map part and the latch) so that when a read operation checks locks, it can ignore the locks with <code>max_read_ts</code> greater than the current <code>read_ts</code>. However since this design is lock-free, it introduced another chance of breaking the isolation: a read may check lock between a prewrite getting <code>max_read_ts</code> and setting the memory lock. But this is quite easy to solve: let prewrite operation get another <code>max_read_ts</code> after locking the memlock. Thus the full procedure of prewrite looks like this:</p>
+<ol>
+<li>Atomically get the <code>max_read_ts</code> as <code>T1</code>.</li>
+<li>Lock the memlock and acquire latches, saving <code>T1</code> to them.</li>
+<li>Atomically get the <code>max_read_ts</code> again as <code>T2</code>.</li>
+<li>Continue performing prewrite and persist <code>T2</code> to the locks written down to engine.</li>
+</ol>
+<h3><a class="header" href="#idea-5-push-start_ts-of-readers" id="idea-5-push-start_ts-of-readers">Idea 5: Push start_ts of readers</a></h3>
+<p>(nrc's understanding of CRDB solution).</p>
+<p>TODO</p>
+<h2><a class="header" href="#replica-read-by-gengliqi" id="replica-read-by-gengliqi">Replica Read (By @gengliqi)</a></h2>
+<p>In the solutions to the locking problem, writing are performed on leaders, and it needs to know the <code>max_read_ts</code>. However if follower read is enabled, the leader need to know the <code>max_read_ts</code> among all replicas of the Region by some way, and reading on followers should be blocked when the leader has an ongoing conflicting prewrite. Here is one possible solution to this problem.</p>
+<p>The main idea is to adjust the lock's <code>max_read_ts</code> in Raft layer. It might be hard to avoid Raftstore coupling with transaction logic though.</p>
+<p>First, readings on followers should send the read ts via the ReadIndex message to the leader, and the leader records it. When a prewrite of a Parallel-Commit transaction is being proposed in Raft layer, it's <code>max_read_ts</code> field should be updated if it's smaller than the <code>max_read_ts</code> that was recorded in Raft layer. This makes it possible to write down the <code>max_read_ts</code> among all replicas.</p>
+<p>However this doesn't apply to the case that a ReadIndex arrives between a prewrite's proposal and committing. We can't edit <code>max_read_ts</code> from the raft log since it has been proposed, and we cannot immediately allow the follower to read before the log being applied. So secondly, we need a additional mechanism to prevent the follower from reading without the lock. </p>
+<p>In the current implementation (where Parallel Commit is not supported), ReadIndex returns the leader's commit index, and the follower can read only when its apply index &gt;= leader's commit index. </p>
+<p>One way to solve this problem, is to let the leader returns <code>pc_index</code> after this <code>pc_index</code> log is committed if <code>pc_index</code> is greater than the commit index. <code>pc_index</code> indicates the index of proposed prewrite of Parallel-Commit transactions. This is easy to implement, but increases the latency of follower read, since the follower needs to wait for applying more logs before it's permitted to read. </p>
+<p>Another approach is to let the leader returns both <code>commit_index</code> and <code>pc_index</code> for ReadIndex, and the follower needs to construct a in-memory lock for received-but-not-yet-committed prewrites, and reads are permitted when the leader's <code>commit_index</code> is applied and, additionally, all logs before <code>pc_index</code> has been received. Then the read should be blocked if it tries to read keys that has been locked by the in-memory lock we just mentioned. Note that Raft learners also need to do this. If we choose this approach, TiFlash might be exclusive with async commit before we support this mechanism on it.</p>
+<p>Another solution is ReadIndex carries read_ts and key range and treat it as normal read operations.</p>
+<h2><a class="header" href="#non-globally-unique-committs" id="non-globally-unique-committs">Non-Globally-Unique CommitTS</a></h2>
+<p>Currently in write CF, we use <code>encode(user_key)+commit_ts</code> as the key to write in RocksDB. When a key is rolled back, it doesn't has a commit_ts, so its commit_ts will be simply set to start_ts. This is ok as long as the commit_ts is a globally-unique timestamp like start_ts of transactions. However, things are different when we start to calculate commit_ts rather than using a TSO as the commit_ts. The keys of rollbacks and commits in write CF may collide, but usually we need to keep both.</p>
+<p>We have multiple ways to solve the problem (See <a href="globally-non-unique-timestamps.html">globally-non-unique-timestamps.md</a>). Currently our preferred solution is the Solution 3 in that document: adding Rollback flag to Write records. When a Commit record and a Rollback record collides, we write the Commit record with a <code>has_rollback</code> flag to mark there is an overwritten rollback.</p>
+<p>The drawback is that in this way CDC will be affected. We need to distinguish the two cases:</p>
+<ul>
+<li>Rollback flag is appended to a existed commit record</li>
+<li>Commit Record replaced a Rollback record and sets Rollback flag of itself.</li>
+</ul>
+<p>So that CDC module can know whether it need to perform a Commit action or a Rollback action.</p>
+<h2><a class="header" href="#affects-to-cdc" id="affects-to-cdc">Affects to CDC</a></h2>
+<p>Implementing Parallel Commit will introduce some affects to CDC.</p>
+<h3><a class="header" href="#committs-issue" id="committs-issue">CommitTS issue</a></h3>
+<p>As we mentioned in the last section, implementing Rollback Flag to enable non-globally-unique CommitTS will affect CDC. We've discussed in the last section so we don't repeat here.</p>
+<h3><a class="header" href="#restrictions-between-max_read_ts-and-resolved_ts" id="restrictions-between-max_read_ts-and-resolved_ts">Restrictions between <code>max_read_ts</code> and <code>resolved_ts</code></a></h3>
+<p>When calculating <code>max_read_ts</code>, the <code>resolved_ts</code> of CDC must be also considered. Also, ongoing prewrites should block <code>resolved_ts</code> from advancing. The design to achieve this may be not easy, since CDC is a side module in TiKV that references main module of TiKV, rather than TiKV referencing CDC module.</p>
+<p><strong>TODO: This issue is still to be discussed.</strong></p>
+<h2><a class="header" href="#affects-to-tidb-binlog" id="affects-to-tidb-binlog">Affects to tidb-binlog</a></h2>
+<p>Since we must support calculating CommitTS to implement Parallel Commit, which seems to be totally not capable for tidb-binlog to support. If one want to use tidb-binlog, the only way is to disable Parallel Commit (and other optimizations that needs CommitTS calculation we do in the future), otherwise consider use CDC instead of tidb-binlog.</p>
+<h2><a class="header" href="#affects-to-backup--restore" id="affects-to-backup--restore">Affects to backup &amp; restore</a></h2>
+<p>If the maximum commit ts in the existing backup is <code>T</code>. An incremental backup dumps data with commit ts in (<code>T</code>, +inf).</p>
+<p>It is possible that a transaction commits with <code>T</code> after the previous backup. But the next incremental backup skips it.</p>
+<p>Note: If we are using <code>max_read_ts + 1</code> to commit instead of <code>max_ts + 1</code>, it's even possible that the commit ts is small than <code>T</code>, which is more troublesome.</p>
+<h2><a class="header" href="#schema-version-checking" id="schema-version-checking">Schema Version Checking</a></h2>
+<p>The existing 2pc process checks the schema version before issue the final commit command, if we do async commit, we don't have a chance to check the schema version. If it has changed, we may break the index/row consistency.</p>
+<p><strong>TODO: This issue is still to be discussed.</strong></p>
+
+                    </main>
+
+                    <nav class="nav-wrapper" aria-label="Page navigation">
+                        <!-- Mobile navigation buttons -->
+                        
+                            <a rel="prev" href="../../design/async-commit/replica-read.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                                <i class="fa fa-angle-left"></i>
+                            </a>
+                        
+
+                        
+
+                        <div style="clear: both"></div>
+                    </nav>
+                </div>
+            </div>
+
+            <nav class="nav-wide-wrapper" aria-label="Page navigation">
+                
+                    <a rel="prev" href="../../design/async-commit/replica-read.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                        <i class="fa fa-angle-left"></i>
+                    </a>
+                
+
+                
+            </nav>
+
+        </div>
+
+        
+
+        
+
+        
+
+        
+        <script type="text/javascript">
+            window.playground_copyable = true;
+        </script>
+        
+
+        
+
+        
+        <script src="../../elasticlunr.min.js" type="text/javascript" charset="utf-8"></script>
+        <script src="../../mark.min.js" type="text/javascript" charset="utf-8"></script>
+        <script src="../../searcher.js" type="text/javascript" charset="utf-8"></script>
+        
+
+        <script src="../../clipboard.min.js" type="text/javascript" charset="utf-8"></script>
+        <script src="../../highlight.js" type="text/javascript" charset="utf-8"></script>
+        <script src="../../book.js" type="text/javascript" charset="utf-8"></script>
+
+        <!-- Custom JS scripts -->
+        
+
+        
+
+    </body>
+</html>

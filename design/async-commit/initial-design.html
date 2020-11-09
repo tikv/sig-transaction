@@ -1,0 +1,373 @@
+<!DOCTYPE HTML>
+<html lang="en" class="sidebar-visible no-js light">
+    <head>
+        <!-- Book generated using mdBook -->
+        <meta charset="UTF-8">
+        <title>Initial design - TiKV sig-transaction documentation</title>
+        
+        
+
+
+        <!-- Custom HTML head -->
+        
+
+
+        <meta content="text/html; charset=utf-8" http-equiv="Content-Type">
+        <meta name="description" content="Documentation of distributed transactions in TiDB and TiKV. Includes some coverage of general distributed transaction topics.">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta name="theme-color" content="#ffffff" />
+
+        <link rel="icon" href="../../favicon.svg">
+        <link rel="shortcut icon" href="../../favicon.png">
+        <link rel="stylesheet" href="../../css/variables.css">
+        <link rel="stylesheet" href="../../css/general.css">
+        <link rel="stylesheet" href="../../css/chrome.css">
+        <link rel="stylesheet" href="../../css/print.css" media="print">
+
+        <!-- Fonts -->
+        <link rel="stylesheet" href="../../FontAwesome/css/font-awesome.css">
+        
+        <link rel="stylesheet" href="../../fonts/fonts.css">
+        
+
+        <!-- Highlight.js Stylesheets -->
+        <link rel="stylesheet" href="../../highlight.css">
+        <link rel="stylesheet" href="../../tomorrow-night.css">
+        <link rel="stylesheet" href="../../ayu-highlight.css">
+
+        <!-- Custom theme stylesheets -->
+        
+
+        
+    </head>
+    <body>
+        <!-- Provide site root to javascript -->
+        <script type="text/javascript">
+            var path_to_root = "../../";
+            var default_theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? "navy" : "light";
+        </script>
+
+        <!-- Work around some values being stored in localStorage wrapped in quotes -->
+        <script type="text/javascript">
+            try {
+                var theme = localStorage.getItem('mdbook-theme');
+                var sidebar = localStorage.getItem('mdbook-sidebar');
+
+                if (theme.startsWith('"') && theme.endsWith('"')) {
+                    localStorage.setItem('mdbook-theme', theme.slice(1, theme.length - 1));
+                }
+
+                if (sidebar.startsWith('"') && sidebar.endsWith('"')) {
+                    localStorage.setItem('mdbook-sidebar', sidebar.slice(1, sidebar.length - 1));
+                }
+            } catch (e) { }
+        </script>
+
+        <!-- Set the theme before any content is loaded, prevents flash -->
+        <script type="text/javascript">
+            var theme;
+            try { theme = localStorage.getItem('mdbook-theme'); } catch(e) { }
+            if (theme === null || theme === undefined) { theme = default_theme; }
+            var html = document.querySelector('html');
+            html.classList.remove('no-js')
+            html.classList.remove('light')
+            html.classList.add(theme);
+            html.classList.add('js');
+        </script>
+
+        <!-- Hide / unhide sidebar before it is displayed -->
+        <script type="text/javascript">
+            var html = document.querySelector('html');
+            var sidebar = 'hidden';
+            if (document.body.clientWidth >= 1080) {
+                try { sidebar = localStorage.getItem('mdbook-sidebar'); } catch(e) { }
+                sidebar = sidebar || 'visible';
+            }
+            html.classList.remove('sidebar-visible');
+            html.classList.add("sidebar-" + sidebar);
+        </script>
+
+        <nav id="sidebar" class="sidebar" aria-label="Table of contents">
+            <div class="sidebar-scrollbox">
+                <ol class="chapter"><li class="chapter-item expanded "><a href="../../index.html"><strong aria-hidden="true">1.</strong> Intro</a></li><li class="chapter-item expanded affix "><li class="part-title">Documentation</li><li class="chapter-item expanded "><a href="../../doc/tikv/index.html"><strong aria-hidden="true">2.</strong> Transactions in TiKV</a></li><li class="chapter-item expanded "><a href="../../doc/tikv/transaction-handling-newbie-perspective/transaction-handling-newbie-perspective.html"><strong aria-hidden="true">3.</strong> Transactions handling newbiew perspective</a></li><li class="chapter-item expanded affix "><li class="part-title">Design docs</li><li class="chapter-item expanded "><a href="../../design/transaction-layer-refactoring.html"><strong aria-hidden="true">4.</strong> Proposal for refactoring how transactional commands are scheduled and implemented</a></li><li class="chapter-item expanded "><a href="../../design/async-commit/index.html"><strong aria-hidden="true">5.</strong> Async commit</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="../../design/async-commit/project-summary.html"><strong aria-hidden="true">5.1.</strong> Project summary</a></li><li class="chapter-item expanded "><a href="../../design/async-commit/initial-design.html" class="active"><strong aria-hidden="true">5.2.</strong> Initial design</a></li><li class="chapter-item expanded "><a href="../../design/async-commit/globally-non-unique-timestamps.html"><strong aria-hidden="true">5.3.</strong> Non-unique timestamps</a></li><li class="chapter-item expanded "><a href="../../design/async-commit/replica-read.html"><strong aria-hidden="true">5.4.</strong> Replica read</a></li><li class="chapter-item expanded "><a href="../../design/async-commit/parallel-commit-known-issues-and-solutions.html"><strong aria-hidden="true">5.5.</strong> Known issues</a></li></ol></li></ol>
+            </div>
+            <div id="sidebar-resize-handle" class="sidebar-resize-handle"></div>
+        </nav>
+
+        <div id="page-wrapper" class="page-wrapper">
+
+            <div class="page">
+                
+                <div id="menu-bar-hover-placeholder"></div>
+                <div id="menu-bar" class="menu-bar sticky bordered">
+                    <div class="left-buttons">
+                        <button id="sidebar-toggle" class="icon-button" type="button" title="Toggle Table of Contents" aria-label="Toggle Table of Contents" aria-controls="sidebar">
+                            <i class="fa fa-bars"></i>
+                        </button>
+                        <button id="theme-toggle" class="icon-button" type="button" title="Change theme" aria-label="Change theme" aria-haspopup="true" aria-expanded="false" aria-controls="theme-list">
+                            <i class="fa fa-paint-brush"></i>
+                        </button>
+                        <ul id="theme-list" class="theme-popup" aria-label="Themes" role="menu">
+                            <li role="none"><button role="menuitem" class="theme" id="light">Light (default)</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="rust">Rust</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="coal">Coal</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="navy">Navy</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="ayu">Ayu</button></li>
+                        </ul>
+                        
+                        <button id="search-toggle" class="icon-button" type="button" title="Search. (Shortkey: s)" aria-label="Toggle Searchbar" aria-expanded="false" aria-keyshortcuts="S" aria-controls="searchbar">
+                            <i class="fa fa-search"></i>
+                        </button>
+                        
+                    </div>
+
+                    <h1 class="menu-title">TiKV sig-transaction documentation</h1>
+
+                    <div class="right-buttons">
+                        <a href="../../print.html" title="Print this book" aria-label="Print this book">
+                            <i id="print-button" class="fa fa-print"></i>
+                        </a>
+                        
+                        <a href="https://github.com/tikv/sig-transaction" title="Git repository" aria-label="Git repository">
+                            <i id="git-repository-button" class="fa fa-github"></i>
+                        </a>
+                        
+                    </div>
+                </div>
+
+                
+                <div id="search-wrapper" class="hidden">
+                    <form id="searchbar-outer" class="searchbar-outer">
+                        <input type="search" name="search" id="searchbar" name="searchbar" placeholder="Search this book ..." aria-controls="searchresults-outer" aria-describedby="searchresults-header">
+                    </form>
+                    <div id="searchresults-outer" class="searchresults-outer hidden">
+                        <div id="searchresults-header" class="searchresults-header"></div>
+                        <ul id="searchresults">
+                        </ul>
+                    </div>
+                </div>
+                
+
+                <!-- Apply ARIA attributes after the sidebar and the sidebar toggle button are added to the DOM -->
+                <script type="text/javascript">
+                    document.getElementById('sidebar-toggle').setAttribute('aria-expanded', sidebar === 'visible');
+                    document.getElementById('sidebar').setAttribute('aria-hidden', sidebar !== 'visible');
+                    Array.from(document.querySelectorAll('#sidebar a')).forEach(function(link) {
+                        link.setAttribute('tabIndex', sidebar === 'visible' ? 0 : -1);
+                    });
+                </script>
+
+                <div id="content" class="content">
+                    <main>
+                        <h1><a class="header" href="#async-commit-initial-design" id="async-commit-initial-design">Async Commit (initial design)</a></h1>
+<p>This document is focussed on the initial increments of work to implement a correct, but non-performant version of async commit.</p>
+<p>Implementation is tracked in <a href="https://github.com/tikv/sig-transaction/issues/36">issue 36</a>.</p>
+<h2><a class="header" href="#goals" id="goals">Goals</a></h2>
+<ul>
+<li>Reduce latency of transactions by moving a round trip from client to server from before reporting success to the user to after reporting success to the user.</li>
+<li>Not to significantly reduce throughput or increase latency of reads or prewrite.</li>
+</ul>
+<h2><a class="header" href="#requirements-and-constraints" id="requirements-and-constraints">Requirements and constraints</a></h2>
+<ul>
+<li>Preserve existing SI, linearizability, and RC properties of transactions.</li>
+<li>TiDB can report success to the user after all prewrites succeed; before sending further messages to TiKV.</li>
+<li>Backwards compatible
+<ul>
+<li>Existing data should still be usable (including transient data such as locks)</li>
+<li>We can assume that all TiKV nodes will be updated before any TiDB nodes (and before async commit is enabled)</li>
+<li>Old and new TiKV nodes may exist in the same cluster</li>
+</ul>
+</li>
+</ul>
+<h2><a class="header" href="#known-issues-and-solutions" id="known-issues-and-solutions">Known issues and solutions</a></h2>
+<p>Please see <a href="parallel-commit-known-issues-and-solutions.html">this doc</a>.</p>
+<h2><a class="header" href="#implementation" id="implementation">Implementation</a></h2>
+<h3><a class="header" href="#tidb" id="tidb">TiDB</a></h3>
+<ul>
+<li>The user should opt-in to async commit; we assume the user has opted in for all nodes for the rest of this document.</li>
+<li>Each prewrite response will include a <code>min_commit_ts</code>, TiDB will select the largest <code>min_commit_ts</code> as the final <code>commit_ts</code> for the transaction.</li>
+<li>TiDB can return success to the client before sending the commit message but after receiving success responses for all prewrite messages.</li>
+<li>If an operation fails because it is locked, TiDB must query the primary lock to find a list of secondaries (a <code>CheckTxnStatus</code> request). It will then send a <code>CheckSecondaryLocks</code> request to each region to get all secondary locks and the <code>min_commit_ts</code> in those locks. If all locks in a success state, it can send the commit message as above. If any lock is not present or rolled back, then the transaction should be rolled back.</li>
+</ul>
+<h3><a class="header" href="#tikv" id="tikv">TiKV</a></h3>
+<ul>
+<li>The information stored with each primary key lock should include all keys locked by the transaction and their status.</li>
+<li>When a prewrite is received, lock the keys with a preliminary ts of the start ts. Query PD for a timestamp, this is returned to TiDB as the <code>min_commit_ts</code> and stored in the lock data for the primary key.</li>
+<li>When a read is woken up, ensure we check the commit ts, since we might want the old value (I think we do this anyway).</li>
+<li>Handling a <code>CheckSecondaryLocks</code> message means checking each specified lock, returning <code>min_commit_ts</code> if the lock is in a success state and rolling back the lock if not (including leaving a rollback tombstone).</li>
+</ul>
+<h3><a class="header" href="#protobuf-changes" id="protobuf-changes">Protobuf changes</a></h3>
+<p>See <a href="https://github.com/pingcap/kvproto/pull/637">kvproto/637</a> and <a href="https://github.com/pingcap/kvproto/pull/651">kvproto/651</a>.</p>
+<h2><a class="header" href="#evolution-to-long-term-solution" id="evolution-to-long-term-solution">Evolution to long term solution</a></h2>
+<p>The framework of async commit will be in place at the end of the first iteration. In a later iteration we should improve the temporary locking mechanism, See <a href="parallel-commit-known-issues-and-solutions.html">parallel-commit-solution-ideas.md</a> for possible improvements.</p>
+<h3><a class="header" href="#open-questions" id="open-questions">Open questions</a></h3>
+<ul>
+<li>There is a problem if the commit_ts calculated during a resolve lock is &gt; pd’s latest ts + 1, that is separate from the problem of non-unique timestamps (but has the same root cause). (<a href="https://github.com/tikv/sig-transaction/issues/21">#21</a>)</li>
+<li>Replica read. (<a href="https://github.com/tikv/sig-transaction/issues/20">#20</a>)</li>
+<li>Interaction with CDC. (<a href="https://github.com/tikv/sig-transaction/issues/19">#19</a>)</li>
+<li>Interaction with binlog. (<a href="https://github.com/tikv/sig-transaction/issues/19">#19</a>)</li>
+<li>Missing schema check in TiDB on commit.</li>
+<li>Interaction with large transactions (there should be no problem, we must ensure that other transactions don't push a async commit transaction's commit_ts).</li>
+<li>Heartbeats for keeping async commit transactions alive.</li>
+</ul>
+<h3><a class="header" href="#refinements" id="refinements">Refinements</a></h3>
+<h4><a class="header" href="#tidb-1" id="tidb-1">TiDB</a></h4>
+<ul>
+<li>TiDB should choose whether or not to use async commit based on the size of the transaction</li>
+</ul>
+<h4><a class="header" href="#tikv-1" id="tikv-1">TiKV</a></h4>
+<ul>
+<li>When using a preliminary lock, try to wake up reader when we have a commit ts.</li>
+<li>Use a memlock rather than writing a preliminary lock</li>
+</ul>
+<p>Refinement 1</p>
+<ul>
+<li>For each node, store a <code>local_ts</code> (aka <code>max_ts</code>), this is the largest ts seen by the node or issued by the node + 1. It could be kept per-region if there is lots of contention, but since it a fairly simple lock-free (but not wait-free) update, I would not expect it to be too bad.
+<ul>
+<li>Note that this is basically a Lamport Clock version of the timestamp, i.e., it is an approximation to PD's current TS.</li>
+</ul>
+</li>
+<li>TiDB fetches a timestamp from PD for all prewrites (<code>min_commit_ts</code>). TiKV compares <code>min_commit_ts</code> to <code>local_ts</code>, if <code>local_ts</code> is greater than <code>min_commit_ts</code>, it must fetch a new timestamp from PD, otherwise it can reuse <code>min_commit_ts</code>.</li>
+</ul>
+<p>Refinement 2</p>
+<ul>
+<li>Use the <code>local_ts</code> as the <code>min_commit_ts</code>.</li>
+<li>Note that this scheme causes duplicate time stamps, and requires one of the proposed solutions.</li>
+</ul>
+<p>Refinement 3</p>
+<ul>
+<li>The user can opt-in to non-linearizability. In that case we use the extended timestamp format described in <a href="globally-non-unique-timestamps.html#solution-6-extend-the-timestamp-format">parallel-commit-known-issues-and-solutions.md</a>.</li>
+<li>If the user does not opt-in, then use the refinement 1 scheme.</li>
+</ul>
+<h4><a class="header" href="#1pc" id="1pc">1PC</a></h4>
+<p>If there is just a single prewrite then TiDB can set a flag on the request, then TiKV can just use the <code>min_commit_ts</code> as the <code>commit_ts</code> and commit the transaction without TiDB sending the final commit message (or taking the risk of )</p>
+<h4><a class="header" href="#max_read_ts-approach" id="max_read_ts-approach"><code>max_read_ts</code> approach</a></h4>
+<p>The coarsest granularity is to maintain <code>max_read_ts</code> and <code>min_commit_ts</code> per region.</p>
+<p>The per-range approach:</p>
+<ul>
+<li>For each region, store in memory (note this general mechanism should be abstracted using a trait so it can be easily upgraded to per-key or other form of locking):
+<ul>
+<li>A structure of <code>min_commit_ts</code>s, a map from each in-progress transaction to the minimum ts at which it may be committed.</li>
+<li><code>max_read_ts</code>: the largest <code>start_ts</code> for any transactional read operation for the region (i.e., this value is potentially set on every read).</li>
+<li>When a TiKV node is started up or becomes leader, <code>max_read_ts</code> is initialised from PD with a new timestamp.</li>
+<li>When a prewrite is processed, TiKV records the current <code>max_read_ts + 1</code> as the <code>min_commit_ts</code> for that transaction. <code>min_commit_ts</code> is recorded in each key's lock data structure.</li>
+<li>When a prewrite is finished, its entry is removed from the <code>min_commit_ts</code> structure. If the prewrite is successful, the <code>min_commit_ts</code> is returned to TiDB in the response.</li>
+<li>When a read is processed, first it sets the <code>max_read_ts</code>, then it checks its <code>start_ts</code> against the smallest <code>min_commit_ts</code> of any current transaction in the read range. It will block until its <code>start_ts &gt;= min(min_commit_ts)</code></li>
+</ul>
+</li>
+<li>Use <code>Mutex&lt;Timestamp&gt;</code> for <code>max_read_ts</code></li>
+</ul>
+<p>Further refinement:</p>
+<ul>
+<li>Per-key, rather than per-region, <code>min_commit_ts</code> and <code>max_read_ts</code></li>
+<li>Lock-free <code>max_read_ts</code> rather than using a mutex.</li>
+</ul>
+<h5><a class="header" href="#handling-non-unique-timestamps" id="handling-non-unique-timestamps">Handling non-unique timestamps</a></h5>
+<p>See <a href="globally-non-unique-timestamps.html">parallel-commit-known-issues-and-solutions.md</a> for discussion.</p>
+<p>There is a possibility of two transactions having the same commit_ts, or of one transaction’s start_ts to be equal to the other’s commit_ts. We believe conflicts in the write CF between two commits are not possible. However, if one transaction's <code>start_ts</code> is another's <code>commit_ts</code> then rolling back the first transaction would collide with committing the second. We believe this isn't too serious an issue, but we will need to find a backwards compatible change to the write CF format. We do not know if there are problems due to non-unique timestamps besides the conflict in write CF.</p>
+<h2><a class="header" href="#testing" id="testing">Testing</a></h2>
+<h2><a class="header" href="#staffing" id="staffing">Staffing</a></h2>
+<p>The following people are available for work on this project (as of 2020-06-15):</p>
+<ul>
+<li>Zhenjing (@MyonKeminta): minimal time until CDC project is complete</li>
+<li>Zhaolei (@youjiali1995): review + minimal time</li>
+<li>Nick (@nrc): approximately full time</li>
+<li>Yilin (@sticnarf): approximately 1/2 time</li>
+<li>Fangsong (@longfangsong): approximately full time after apx one month (although work to be finalised)</li>
+<li>Rui Xu (@cfzjywxk): apx 1/3 initially</li>
+</ul>
+<p>RACI roles:</p>
+<ul>
+<li>Responsible:
+<ul>
+<li>Nick</li>
+<li>Rui Xu</li>
+<li>Yilin</li>
+</ul>
+</li>
+<li>Accountable: Rui Xu</li>
+<li>Consulted:
+<ul>
+<li>Zhenjing</li>
+<li>Zhaolei</li>
+</ul>
+</li>
+<li>Informed:
+<ul>
+<li>Liu Wei</li>
+<li>Liqi</li>
+<li>Evan Zhou</li>
+<li>#sig-transaction</li>
+<li>this month in TiKV</li>
+</ul>
+</li>
+</ul>
+
+                    </main>
+
+                    <nav class="nav-wrapper" aria-label="Page navigation">
+                        <!-- Mobile navigation buttons -->
+                        
+                            <a rel="prev" href="../../design/async-commit/project-summary.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                                <i class="fa fa-angle-left"></i>
+                            </a>
+                        
+
+                        
+                            <a rel="next" href="../../design/async-commit/globally-non-unique-timestamps.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                                <i class="fa fa-angle-right"></i>
+                            </a>
+                        
+
+                        <div style="clear: both"></div>
+                    </nav>
+                </div>
+            </div>
+
+            <nav class="nav-wide-wrapper" aria-label="Page navigation">
+                
+                    <a rel="prev" href="../../design/async-commit/project-summary.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                        <i class="fa fa-angle-left"></i>
+                    </a>
+                
+
+                
+                    <a rel="next" href="../../design/async-commit/globally-non-unique-timestamps.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                        <i class="fa fa-angle-right"></i>
+                    </a>
+                
+            </nav>
+
+        </div>
+
+        
+
+        
+
+        
+
+        
+        <script type="text/javascript">
+            window.playground_copyable = true;
+        </script>
+        
+
+        
+
+        
+        <script src="../../elasticlunr.min.js" type="text/javascript" charset="utf-8"></script>
+        <script src="../../mark.min.js" type="text/javascript" charset="utf-8"></script>
+        <script src="../../searcher.js" type="text/javascript" charset="utf-8"></script>
+        
+
+        <script src="../../clipboard.min.js" type="text/javascript" charset="utf-8"></script>
+        <script src="../../highlight.js" type="text/javascript" charset="utf-8"></script>
+        <script src="../../book.js" type="text/javascript" charset="utf-8"></script>
+
+        <!-- Custom JS scripts -->
+        
+
+        
+
+    </body>
+</html>

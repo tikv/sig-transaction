@@ -1,0 +1,1259 @@
+<!DOCTYPE HTML>
+<html lang="en" class="sidebar-visible no-js light">
+    <head>
+        <!-- Book generated using mdBook -->
+        <meta charset="UTF-8">
+        <title>TiKV sig-transaction documentation</title>
+        
+        <meta name="robots" content="noindex" />
+        
+        
+
+
+        <!-- Custom HTML head -->
+        
+
+
+        <meta content="text/html; charset=utf-8" http-equiv="Content-Type">
+        <meta name="description" content="Documentation of distributed transactions in TiDB and TiKV. Includes some coverage of general distributed transaction topics.">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta name="theme-color" content="#ffffff" />
+
+        <link rel="icon" href="favicon.svg">
+        <link rel="shortcut icon" href="favicon.png">
+        <link rel="stylesheet" href="css/variables.css">
+        <link rel="stylesheet" href="css/general.css">
+        <link rel="stylesheet" href="css/chrome.css">
+        <link rel="stylesheet" href="css/print.css" media="print">
+
+        <!-- Fonts -->
+        <link rel="stylesheet" href="FontAwesome/css/font-awesome.css">
+        
+        <link rel="stylesheet" href="fonts/fonts.css">
+        
+
+        <!-- Highlight.js Stylesheets -->
+        <link rel="stylesheet" href="highlight.css">
+        <link rel="stylesheet" href="tomorrow-night.css">
+        <link rel="stylesheet" href="ayu-highlight.css">
+
+        <!-- Custom theme stylesheets -->
+        
+
+        
+    </head>
+    <body>
+        <!-- Provide site root to javascript -->
+        <script type="text/javascript">
+            var path_to_root = "";
+            var default_theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? "navy" : "light";
+        </script>
+
+        <!-- Work around some values being stored in localStorage wrapped in quotes -->
+        <script type="text/javascript">
+            try {
+                var theme = localStorage.getItem('mdbook-theme');
+                var sidebar = localStorage.getItem('mdbook-sidebar');
+
+                if (theme.startsWith('"') && theme.endsWith('"')) {
+                    localStorage.setItem('mdbook-theme', theme.slice(1, theme.length - 1));
+                }
+
+                if (sidebar.startsWith('"') && sidebar.endsWith('"')) {
+                    localStorage.setItem('mdbook-sidebar', sidebar.slice(1, sidebar.length - 1));
+                }
+            } catch (e) { }
+        </script>
+
+        <!-- Set the theme before any content is loaded, prevents flash -->
+        <script type="text/javascript">
+            var theme;
+            try { theme = localStorage.getItem('mdbook-theme'); } catch(e) { }
+            if (theme === null || theme === undefined) { theme = default_theme; }
+            var html = document.querySelector('html');
+            html.classList.remove('no-js')
+            html.classList.remove('light')
+            html.classList.add(theme);
+            html.classList.add('js');
+        </script>
+
+        <!-- Hide / unhide sidebar before it is displayed -->
+        <script type="text/javascript">
+            var html = document.querySelector('html');
+            var sidebar = 'hidden';
+            if (document.body.clientWidth >= 1080) {
+                try { sidebar = localStorage.getItem('mdbook-sidebar'); } catch(e) { }
+                sidebar = sidebar || 'visible';
+            }
+            html.classList.remove('sidebar-visible');
+            html.classList.add("sidebar-" + sidebar);
+        </script>
+
+        <nav id="sidebar" class="sidebar" aria-label="Table of contents">
+            <div class="sidebar-scrollbox">
+                <ol class="chapter"><li class="chapter-item expanded "><a href="index.html"><strong aria-hidden="true">1.</strong> Intro</a></li><li class="chapter-item expanded affix "><li class="part-title">Documentation</li><li class="chapter-item expanded "><a href="doc/tikv/index.html"><strong aria-hidden="true">2.</strong> Transactions in TiKV</a></li><li class="chapter-item expanded "><a href="doc/tikv/transaction-handling-newbie-perspective/transaction-handling-newbie-perspective.html"><strong aria-hidden="true">3.</strong> Transactions handling newbiew perspective</a></li><li class="chapter-item expanded affix "><li class="part-title">Design docs</li><li class="chapter-item expanded "><a href="design/transaction-layer-refactoring.html"><strong aria-hidden="true">4.</strong> Proposal for refactoring how transactional commands are scheduled and implemented</a></li><li class="chapter-item expanded "><a href="design/async-commit/index.html"><strong aria-hidden="true">5.</strong> Async commit</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="design/async-commit/project-summary.html"><strong aria-hidden="true">5.1.</strong> Project summary</a></li><li class="chapter-item expanded "><a href="design/async-commit/initial-design.html"><strong aria-hidden="true">5.2.</strong> Initial design</a></li><li class="chapter-item expanded "><a href="design/async-commit/globally-non-unique-timestamps.html"><strong aria-hidden="true">5.3.</strong> Non-unique timestamps</a></li><li class="chapter-item expanded "><a href="design/async-commit/replica-read.html"><strong aria-hidden="true">5.4.</strong> Replica read</a></li><li class="chapter-item expanded "><a href="design/async-commit/parallel-commit-known-issues-and-solutions.html"><strong aria-hidden="true">5.5.</strong> Known issues</a></li></ol></li></ol>
+            </div>
+            <div id="sidebar-resize-handle" class="sidebar-resize-handle"></div>
+        </nav>
+
+        <div id="page-wrapper" class="page-wrapper">
+
+            <div class="page">
+                
+                <div id="menu-bar-hover-placeholder"></div>
+                <div id="menu-bar" class="menu-bar sticky bordered">
+                    <div class="left-buttons">
+                        <button id="sidebar-toggle" class="icon-button" type="button" title="Toggle Table of Contents" aria-label="Toggle Table of Contents" aria-controls="sidebar">
+                            <i class="fa fa-bars"></i>
+                        </button>
+                        <button id="theme-toggle" class="icon-button" type="button" title="Change theme" aria-label="Change theme" aria-haspopup="true" aria-expanded="false" aria-controls="theme-list">
+                            <i class="fa fa-paint-brush"></i>
+                        </button>
+                        <ul id="theme-list" class="theme-popup" aria-label="Themes" role="menu">
+                            <li role="none"><button role="menuitem" class="theme" id="light">Light (default)</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="rust">Rust</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="coal">Coal</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="navy">Navy</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="ayu">Ayu</button></li>
+                        </ul>
+                        
+                        <button id="search-toggle" class="icon-button" type="button" title="Search. (Shortkey: s)" aria-label="Toggle Searchbar" aria-expanded="false" aria-keyshortcuts="S" aria-controls="searchbar">
+                            <i class="fa fa-search"></i>
+                        </button>
+                        
+                    </div>
+
+                    <h1 class="menu-title">TiKV sig-transaction documentation</h1>
+
+                    <div class="right-buttons">
+                        <a href="print.html" title="Print this book" aria-label="Print this book">
+                            <i id="print-button" class="fa fa-print"></i>
+                        </a>
+                        
+                        <a href="https://github.com/tikv/sig-transaction" title="Git repository" aria-label="Git repository">
+                            <i id="git-repository-button" class="fa fa-github"></i>
+                        </a>
+                        
+                    </div>
+                </div>
+
+                
+                <div id="search-wrapper" class="hidden">
+                    <form id="searchbar-outer" class="searchbar-outer">
+                        <input type="search" name="search" id="searchbar" name="searchbar" placeholder="Search this book ..." aria-controls="searchresults-outer" aria-describedby="searchresults-header">
+                    </form>
+                    <div id="searchresults-outer" class="searchresults-outer hidden">
+                        <div id="searchresults-header" class="searchresults-header"></div>
+                        <ul id="searchresults">
+                        </ul>
+                    </div>
+                </div>
+                
+
+                <!-- Apply ARIA attributes after the sidebar and the sidebar toggle button are added to the DOM -->
+                <script type="text/javascript">
+                    document.getElementById('sidebar-toggle').setAttribute('aria-expanded', sidebar === 'visible');
+                    document.getElementById('sidebar').setAttribute('aria-hidden', sidebar !== 'visible');
+                    Array.from(document.querySelectorAll('#sidebar a')).forEach(function(link) {
+                        link.setAttribute('tabIndex', sidebar === 'visible' ? 0 : -1);
+                    });
+                </script>
+
+                <div id="content" class="content">
+                    <main>
+                        <h1><a class="header" href="#sig-transaction" id="sig-transaction">SIG-transaction</a></h1>
+<p><a href="https://tikv.github.io/sig-transaction/">Rendered version (Recommended)</a></p>
+<p>The transactions special interest group (SIG-transaction) are a group of people interested in transactions in distributed databases. We have a focus on transactions in <strong>TiKV and TiKV clients</strong> (including TiDB, which use TiKV go-client), but discuss academic work and other implementations too.</p>
+<h2><a class="header" href="#sig-activites" id="sig-activites">SIG activites</a></h2>
+<ul>
+<li>talks on distributed transactions,</li>
+<li>a <a href="https://tikv.org/blog/sig-txn-reading-group-nov-20/">reading group</a> for academic papers,</li>
+<li>discussion of transaction research and implementations on Slack,</li>
+<li>help understanding and configuring transactions in TiKV and TiDB,</li>
+<li>support for contributors to TiKV and related projects.</li>
+</ul>
+<h2><a class="header" href="#get-involved" id="get-involved">Get involved</a></h2>
+<ol>
+<li>
+<p>You can join us in #sig-transaction in the <a href="https://slack.tidb.io/invite?team=tikv-wg&amp;channel=sig-transaction&amp;ref=community-sig">TiKV community Slack</a>; come say hi! We use English or Chinese. (Recommended)</p>
+</li>
+<li>
+<p>You can read or join our announcement <a href="https://groups.google.com/d/forum/tikv-sig-transaction">mailing list</a>, so you can stay up to date with what we're up to.</p>
+</li>
+</ol>
+<h2><a class="header" href="#people" id="people">People</a></h2>
+<p>See <a href="people.html">people.md</a>. If you want to mention us in an issue, PR, or comment, use @tikv/sig-txn.</p>
+<p>If you have questions about the SIG or transactions in TiKV, please get in touch with either of the leaders!</p>
+<h2><a class="header" href="#resources" id="resources">Resources</a></h2>
+<ul>
+<li><a href="https://tikv.org/blog/">The TiKV blog</a>,</li>
+<li><a href="https://pingcap.com/docs/stable/transaction-overview">TiDB transaction documentation</a>.</li>
+</ul>
+<h2><a class="header" href="#repositories" id="repositories">Repositories</a></h2>
+<ul>
+<li><a href="https://github.com/tikv/tikv">TiKV</a>,</li>
+<li><a href="https://github.com/tikv/client-rust/">TiKV Rust client</a>,</li>
+<li><a href="https://github.com/tikv/client-go/">TiKV Go client</a>,</li>
+<li><a href="https://github.com/tikv/client-java/">TiKV Java client</a>,</li>
+<li><a href="https://github.com/pingcap/kvproto">kvproto</a> (protocol buffers which support transactions, among other things).</li>
+</ul>
+<h2><a class="header" href="#ongoing-transactions-work-in-tikv" id="ongoing-transactions-work-in-tikv">Ongoing transactions work in TiKV</a></h2>
+<ul>
+<li><a href="https://github.com/tikv/tikv/issues?q=is%3Aopen+is%3Aissue+label%3Acomponent%2Ftransaction">Transaction issues</a>,</li>
+<li><a href="https://github.com/tikv/tikv/issues?q=is%3Aopen+is%3Aissue+label%3Asig%2Ftransaction">sig-transaction issues</a>,</li>
+<li><a href="https://github.com/tikv/tikv/issues?q=is%3Aopen+is%3Aissue+label%3Acomponent%2Fstorage">storage issues</a> (most of these are transaction-related in some way),</li>
+<li>project: <a href="https://github.com/tikv/tikv/projects/37">Pipelined pessimistic lock</a>,</li>
+<li>project: <a href="https://github.com/tikv/tikv/projects/36">Large transactions</a>,</li>
+<li>project: <a href="https://github.com/tikv/tikv/projects/35">Green GC</a>,</li>
+<li>project: <a href="https://github.com/tikv/tikv/projects/34">Async commit</a>.</li>
+</ul>
+<h1><a class="header" href="#transactions-in-tikv" id="transactions-in-tikv">Transactions in TiKV</a></h1>
+<p>This doc has some notes on some of the terms and high-level concepts used when discussing transactions in TiKV. It is work in progress, and not yet in-depth.</p>
+<p>The TiKV transaction system is based on part of the <a href="https://research.google/pubs/pub36726/">Percolator</a> system (developed by Google). TiKV has the transactional parts, but not the observer parts of Percolator.</p>
+<p>Read more:</p>
+<ul>
+<li><a href="https://pingcap.com/docs/stable/transaction-overview/">TiDB docs</a></li>
+<li><a href="https://github.com/pingcap-incubator/tinykv/blob/course/doc/project4-Transaction.md">TinyKV docs</a></li>
+<li><a href="https://andremouche.github.io/tidb/transaction_in_tidb.html">Xuelian's blog</a></li>
+</ul>
+<h2><a class="header" href="#principles-and-foundations" id="principles-and-foundations">Principles and foundations</a></h2>
+<ul>
+<li><a href="https://en.wikipedia.org/wiki/Isolation_(database_systems)">Wikipedia article on isolation</a></li>
+<li><a href="https://en.wikipedia.org/wiki/Snapshot_isolation">Wikipedia article on snapshot isolation</a></li>
+<li><a href="https://jepsen.io/consistency">Jepsen post on consistency</a></li>
+<li><a href="https://research.google/pubs/pub36726/">Percolator paper</a></li>
+<li><a href="https://static.googleusercontent.com/media/research.google.com/en//archive/spanner-osdi2012.pdf">Spanner paper</a></li>
+</ul>
+<h2><a class="header" href="#apis" id="apis">APIs</a></h2>
+<p>TiKV offers three kinds of API: raw, transactional, and <a href="https://github.com/tikv/rfcs/blob/master/text/2020-03-11-versioned-kv.md">versioned</a> (which is still in development).</p>
+<p>The raw API gives direct access to the keys and values in TiKV. It does not offer any transactional guarantees.</p>
+<p>The transactional API encodes data using MVCC (see below). By collaborating between the client and the TiKV server, we can offer ACID transactions.</p>
+<p>There is nothing preventing a client using both APIs, however, this is not a supported use case and if you do this you have to be very, very careful in order to not break the guarantees of the transactional API.</p>
+<h2><a class="header" href="#reads-and-writes" id="reads-and-writes">Reads and writes</a></h2>
+<p>When discussing transactions, we usually talk about <em>reads</em> and <em>writes</em>. In this context, a 'write' could be any kind of modifying operation: creating, modifying, or deleting a value. In some places these operations are treated differently, but usually we just care about whether an operation modifies (a write) or doesn't modify (a read) the data.</p>
+<h2><a class="header" href="#two-phase-commit" id="two-phase-commit">Two-phase commit</a></h2>
+<p>TODO</p>
+<h2><a class="header" href="#optimistic-and-pessimistic-transactions" id="optimistic-and-pessimistic-transactions">Optimistic and pessimistic transactions</a></h2>
+<p>TiKV supports two transaction models. Optimistic transactions were implemented first and often when TiKV folks don't specify optimistic or pessimistic, they mean optimistic by default. In the optimistic model, reads and writes are built up locally. All writes are sent together in a prewrite. During prewrite, all keys to be written are locked. If any keys are locked by another transaction, return to client. If all prewrites succeed, the client sends a commit message.</p>
+<p>Pessimistic transactions are the default in TiKV since 3.0.8. In the pessimistic model, there are <em>locking reads</em> (from <code>SELECT ... FOR UPDATE</code> statements), these read a value and lock the key. This means that reads can block. SQL statements which cause writes, lock the keys as they are executed. Writing to the keys is still postponed until prewrite. Prewrite and commit works</p>
+<p>TODO pessimistic txns and Read Committed</p>
+<h3><a class="header" href="#interactions" id="interactions">Interactions</a></h3>
+<p>between optimistic and pessimistic txns TODO</p>
+<p>Read more:</p>
+<ul>
+<li><a href="https://pingcap.com/blog/pessimistic-locking-better-mysql-compatibility-fewer-rollbacks-under-high-load/">blog post</a></li>
+</ul>
+<h2><a class="header" href="#mvcc" id="mvcc">MVCC</a></h2>
+<p>TODO</p>
+<h2><a class="header" href="#consistency-and-isolation-properties" id="consistency-and-isolation-properties">Consistency and isolation properties</a></h2>
+<p>TODO</p>
+<h2><a class="header" href="#timestamps" id="timestamps">Timestamps</a></h2>
+<p>TODO what are timestamps? How are they represented, used, generated? AKA ts, version</p>
+<h3><a class="header" href="#some-timestamps-used-in-transactions" id="some-timestamps-used-in-transactions">Some timestamps used in transactions</a></h3>
+<ul>
+<li><code>start_ts</code>: when the client starts to build the commit; used to identify a transaction.</li>
+<li><code>commit_ts</code>: after successful prewrite, before commit phase.</li>
+<li><code>for_update_ts</code>: TODO</li>
+<li><code>min_commit_ts</code>: TODO </li>
+<li><code>current_ts</code>: TODO</li>
+</ul>
+<h2><a class="header" href="#regions" id="regions">Regions</a></h2>
+<p>TODO</p>
+<h2><a class="header" href="#deadlock-detection" id="deadlock-detection">Deadlock detection</a></h2>
+<p>TODO</p>
+<h2><a class="header" href="#gc" id="gc">GC</a></h2>
+<p>TODO</p>
+<h2><a class="header" href="#retries" id="retries">Retries</a></h2>
+<p>TODO</p>
+<h2><a class="header" href="#constraints-and-assumptions" id="constraints-and-assumptions">Constraints and assumptions</a></h2>
+<p>TODO for each: why? implications, benefits</p>
+<h3><a class="header" href="#timestamps-are-supplied-by-the-client" id="timestamps-are-supplied-by-the-client">Timestamps are supplied by the client</a></h3>
+<p>This decision benefits &quot;user experience&quot;, performance and simplicity.</p>
+<p>First, it gives users more control over the order of concurrent transactions.</p>
+<p>For example, a client commits two transactions: T1 and then T2. 
+If timestamps are supplied by the user, it can assure that T1 won't read any effects of T2 if T1's timestamp is smaller than T2's.
+While if we let TiKV get the timestamp, the user cannot get this guarantee because the order of processing T1 and T2 is nondeterministic.</p>
+<p>Second, it simplifies the system. Otherwise we have to let TiKV maintain states of all active transactions. </p>
+<p>Third, it is beneficial for performance. Large volume of transactions could overburden TiKV server. In addition, GC of inactive transactions is a problem.</p>
+<p>TODO: further elaboration</p>
+<h3><a class="header" href="#all-timestamps-are-unique" id="all-timestamps-are-unique">All timestamps are unique</a></h3>
+<p>TODO</p>
+<p>It's true in previous versions of TiKV. Enabling 1PC or Async commit features could break this guarantee.</p>
+<p>Multiple transactions may have identical commit timestamps. Start timestamps are still unique. One transaction must have distinct start_ts and commit_ts, unless it's rolled back. The commit_ts of a rollback record is the start_ts.</p>
+<h3><a class="header" href="#from-a-users-perspective-reads-never-fail-but-might-have-to-wait" id="from-a-users-perspective-reads-never-fail-but-might-have-to-wait">From a user's perspective, reads never fail but might have to wait</a></h3>
+<p>Reads never fail in the read committed level. The client will always read the most recent committed version.</p>
+<p>Read requests can return <code>KeyError</code> in the snapshot isolation level if the key is locked with <code>lock_ts</code> &lt; <code>read_ts</code>. Then the client can try to resolve the lock and retry until it succeeds.</p>
+<h3><a class="header" href="#the-transaction-layer-does-not-know-about-region-topology-in-particular-it-does-not-treat-regions-on-the-same-node-differently-to-other-regions" id="the-transaction-layer-does-not-know-about-region-topology-in-particular-it-does-not-treat-regions-on-the-same-node-differently-to-other-regions">The transaction layer does not know about region topology, in particular, it does not treat regions on the same node differently to other regions</a></h3>
+<p>A TiKV instance does not have to know the topology. 
+The whole span of data is partitioned into regions. Each TiKV instance will only accept requests involving data lying in its regions. The client makes sure any request is sent to the right TiKV node that owns the data the request needs.</p>
+<p>The design decouples transaction logic and physical data distribution. It makes shceduling more flexible and elastic. 
+Imagine a redistribution of regions among a TiKV cluster that does not require any downtime or maintainance to either clients or TiKV instances.
+PD as the scheduler can ask TiKV to redistribute regions, and send the latest region info to clients.</p>
+<p>The overhead caused by such decoupling is extra network communication. Though clients must acquire regions' and TiKV stores' addresses from PD, these information be cached locally. If topology changes, client may failed some request and retry to refresh its cache. A long-live client should suffer little from it.</p>
+<h3><a class="header" href="#if-committing-the-primary-key-succeeds-then-committing-the-secondary-keys-will-never-fail" id="if-committing-the-primary-key-succeeds-then-committing-the-secondary-keys-will-never-fail">If committing the primary key succeeds, then committing the secondary keys will never fail.</a></h3>
+<p>Even if the commit message sent to the secondary key fails, the lock of a secondary key contains information of its primary key. Any transaction that meets the lock can recognize its state by reading the primary key and help commit the secondary key.</p>
+<p>This property allows returning success once the primary key is committed. Secondary keys could be committed asynchronously and we don't have to care about the result.</p>
+<h2><a class="header" href="#new-and-planned-technology" id="new-and-planned-technology">New and planned technology</a></h2>
+<p>These features are not well-documented elsewhere, so should have more in-depth descriptions here.</p>
+<ul>
+<li><a href="doc/tikv/">Pipelined pessimistic transactions</a></li>
+<li><a href="doc/tikv/">Large transactions</a></li>
+<li><a href="doc/tikv/">Green GC</a></li>
+<li><a href="doc/tikv/">Async commit</a></li>
+<li><a href="doc/tikv/">1PC</a></li>
+</ul>
+<h2><a class="header" href="#glossary" id="glossary">Glossary</a></h2>
+<ul>
+<li><a href="https://jepsen.io/analyses/tidb-2.1.7">Jepsen report</a> on isolation and consistency in TiDB</li>
+</ul>
+<p>TODO</p>
+<ul>
+<li>Column family (CF)</li>
+<li>Prewrite</li>
+<li>Commit</li>
+<li>1PC</li>
+<li>two-phase commit (2PC)</li>
+<li>Rollback</li>
+<li>Resolve lock</li>
+<li>Write conflict</li>
+</ul>
+<h1><a class="header" href="#transaction-handling-process" id="transaction-handling-process">Transaction Handling Process</a></h1>
+<p>This article will introduce how transaction requests are handled in TiKV.</p>
+<p>The urls in this article refers to the code which performs certain operation.</p>
+<p>In a system which consists of TiDB and TiKV, the architecture looks like this:</p>
+<p><img src="doc/tikv/transaction-handling-newbie-perspective/architecture.svg" alt="architecture" /></p>
+<p>Though client is not part of TiKV, it is also an important to read some code in it to understand how a request is handled. </p>
+<p>There're many implements of client, and their process of sending a request is similiar, we'll take <a href="https://github.com/TiKV/client-rust">client-rust</a> as an example here.</p>
+<p>Basically, TiKV's transaction system is based on Google's <a href="https://research.google/pubs/pub36726/">Percolator</a>, you are recommended to read some material about it before you start reading this.</p>
+<h3><a class="header" href="#begin" id="begin">Begin</a></h3>
+<p>You'll need a client object to start a transaction.</p>
+<p>The code which creates a transaction is <a href="https://github.com/tikv/client-rust/blob/07194c4c436e393358986b84daa2ad1e41b4886c/src/transaction/client.rs#L28">here</a>, you can see the client includes a <code>PdRpcClient</code>, which is responsible for communicate with the pd component.</p>
+<p>And then you can use <a href="https://github.com/tikv/client-rust/blob/07194c4c436e393358986b84daa2ad1e41b4886c/src/transaction/client.rs#L51"><code>Client::begin</code></a> to start an transaction.</p>
+<pre><pre class="playground"><code class="language-rust no_run edition2018">
+<span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>pub async fn begin(&amp;self) -&gt; Result&lt;Transaction&gt; {
+	let timestamp = self.current_timestamp().await?;
+	Ok(self.new_transaction(timestamp))
+}
+<span class="boring">}
+</span></code></pre></pre>
+<p>Firstly, we'll need to get a time stamp from pd, and then we'll create a new <code>Transaction</code> object by using current timestamp.</p>
+<h3><a class="header" href="#single-point-read" id="single-point-read">Single point read</a></h3>
+<p>We can use <code>Transaction::get</code>  to get a single value for a certain key.</p>
+<p>This part of code is <a href="https://github.com/TiKV/client-rust/blob/fe765f191115d5ca0eb05275e45e086c2276c2ed/src/transaction/transaction.rs#L71">here</a>.</p>
+<p>We'll try to read the local buffered key first. And if the local buffered key does not exist, a <code>GetRequest</code> will be sent to TiKV.</p>
+<p>You may have known that TiKV divide all the data into different regions, and each replica of some certain region is on its own TiKV node, and pd will manage the meta infomation about where are the replicas for some certain key is.</p>
+<p>The code above seems doesn't cover the steps which decide which TiKV node should we send the request to. But that's not the case. The code which do these jobs is hidden under <a href="https://github.com/tikv/client-rust/blob/07194c4c436e393358986b84daa2ad1e41b4886c/src/request.rs#L29"><code>execute</code></a>, and you'll find the code which tries to get the TiKV node <a href="https://github.com/tikv/client-rust/blob/b7ced1f44ed9ece4405eee6d2573a6ca6fa46379/src/pd/client.rs#L42">here</a> , and it is called by <code>retry_response_stream</code> <a href="https://github.com/tikv/client-rust/blob/07194c4c436e393358986b84daa2ad1e41b4886c/src/request.rs#L48">here</a>:</p>
+<pre><pre class="playground"><code class="language-rust no_code edition2018">
+<span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>fn store_for_key(
+        self: Arc&lt;Self&gt;,
+        key: &amp;Key,
+    ) -&gt; BoxFuture&lt;'static, Result&lt;Store&lt;Self::KvClient&gt;&gt;&gt; {
+        self.region_for_key(key)
+            .and_then(move |region| self.map_region_to_store(region))
+            .boxed()
+    }
+<span class="boring">}
+</span></code></pre></pre>
+<p>Firstly, it will use grpc call <a href="https://github.com/pingcap/kvproto/blob/d4aeb467de2904c19a20a12de47c25213b759da1/proto/pdpb.proto#L41"><code>GetRegion</code></a> in <code>region_for_key</code> to find out which region is the key in.</p>
+<p>The remote fuction <code>GetRegion</code> it defined is <a href="https://github.com/pingcap/pd/blob/6dab049720f4c4e1a91405806fc1fa6517928589/server/grpc_service.go#L416">here</a> in pd.</p>
+<p>And then we'll use grpc call <a href="https://github.com/pingcap/kvproto/blob/d4aeb467de2904c19a20a12de47c25213b759da1/proto/pdpb.proto#L31"><code>GetStore</code></a> in <code>map_region_to_store</code> to find out the leader of region.</p>
+<p>The remote fuction <code>GetStore</code> it defined is <a href="https://github.com/pingcap/pd/blob/2b56a4c5915cb4b8806629193fd943a2e860ae4f/server/grpc_service.go#L171">here</a> in pd.</p>
+<p>Finally we'll get a <code>KvRpcClient</code> instance, which represents the connection to a TiKV replica.</p>
+<p>Then let's back to <code>retry_response_stream</code>, next function call we should pay attention to is  <code>store.dispatch</code>, it calls grpc function <a href="https://github.com/pingcap/kvproto/blob/5f564ec8820e3b4002930f6f3dd1fcd710d4ecd0/proto/tikvpb.proto#L21"><code>KvGet</code></a>.</p>
+<p>And finally we reach the code in TiKV's repo. In TiKV, the requests are handled by <a href="https://github.com/tikv/tikv/blob/bf716a111fde9fe8da56f8bd840c53d80c395525/src/server/server.rs#L49"><code>Server</code> struct</a> , and the <code>KvGet</code> will be handled by <code>future_get</code> <a href="https://github.com/tikv/tikv/blob/bf716a111fde9fe8da56f8bd840c53d80c395525/src/server/service/kv.rs#L1136">here</a>.</p>
+<p>Firstly we'll read the value for a key by using <a href="https://github.com/tikv/tikv/blob/bf716a111fde9fe8da56f8bd840c53d80c395525/src/storage/mod.rs#L213"><code>Storage::get</code></a>.</p>
+<p><code>get</code> function is a little bit long, we'll ignore <code>STATIC</code> parts for now, and we'll get:</p>
+<pre><pre class="playground"><code class="language-rust no_run edition2018">
+<span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>pub fn get(&amp;self, mut ctx: Context, key: Key,
+    start_ts: TimeStamp) -&gt; impl Future&lt;Item = Option&lt;Value&gt;, Error = Error&gt; {
+    const CMD: CommandKind = CommandKind::get;
+    let priority = ctx.get_priority();
+    let priority_tag = get_priority_tag(priority);
+
+    let res = self.read_pool.spawn_handle(
+        async move {
+            // The bypass_locks set will be checked at most once. `TsSet::vec` is more efficient
+            // here.
+            let bypass_locks = TsSet::vec_from_u64s(ctx.take_resolved_locks());
+            let snapshot = Self::with_tls_engine(|engine| Self::snapshot(engine, &amp;ctx)).await?;
+            let snap_store = SnapshotStore::new(snapshot, start_ts,
+                        ctx.get_isolation_level(),
+                        !ctx.get_not_fill_cache(),
+                        bypass_locks,
+                        false);
+            let result = snap_store.get(&amp;key, &amp;mut statistics)
+                    // map storage::txn::Error -&gt; storage::Error
+                    .map_err(Error::from);
+            result
+        },
+        priority,
+        thread_rng().next_u64(),
+    );
+    res.map_err(|_| Error::from(ErrorInner::SchedTooBusy))
+        .flatten()
+}
+<span class="boring">}
+</span></code></pre></pre>
+<p>This function will get a <code>snapshot</code>, and then construct a <code>SnapshotStore</code> by using the <code>snapshot</code>, and then call <code>get</code> on this <code>SnapshotStore</code>, and finally get the data we need.</p>
+<p>The <code>bypass_locks</code> part is a tricky optimize related to <a href="https://pingcap.com/blog/large-transactions-in-tidb/">large transaction</a>, see <a href="https://github.com/tikv/tikv/pull/5798">this pr</a>.</p>
+<p>Then we'll view the code of <code>SnapshotStore::get</code>, you'll see that in fact it consturcted a <a href="https://github.com/tikv/tikv/blob/4ac9a68126056d1b7cf0fc9323b899253b73e577/src/storage/mvcc/reader/point_getter.rs#L133"><code>PointGetter</code></a>, and then call the <code>get</code> method on <code>PointGetter</code>:</p>
+<pre><pre class="playground"><code class="language-rust no_run edition2018">
+<span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>pub fn get(&amp;mut self, user_key: &amp;Key) -&gt; Result&lt;Option&lt;Value&gt;&gt; {
+    if !self.multi {
+        // Protect from calling `get()` multiple times when `multi == false`.
+        if self.drained {
+            return Ok(None);
+        } else {
+            self.drained = true;
+        }
+    }
+
+    match self.isolation_level {
+        IsolationLevel::Si =&gt; {
+            // Check for locks that signal concurrent writes in Si.
+            self.load_and_check_lock(user_key)?;
+        }
+        IsolationLevel::Rc =&gt; {}
+    }
+
+    self.load_data(user_key)
+}
+<span class="boring">}
+</span></code></pre></pre>
+<p>As we can see, if the required <code>isolation_level</code> is <code>Si</code>, we need to check whether there's any locks which may conflict with current get. If we find some, we'll return a  <code>KeyIsLocked</code> error:</p>
+<pre><pre class="playground"><code class="language-rust no_run edition2018">
+<span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>fn load_and_check_lock(&amp;mut self, user_key: &amp;Key) -&gt; Result&lt;()&gt; {
+    self.statistics.lock.get += 1;
+    let lock_value = self.snapshot.get_cf(CF_LOCK, user_key)?;
+
+    if let Some(ref lock_value) = lock_value {
+        self.statistics.lock.processed += 1;
+        let lock = Lock::parse(lock_value)?;
+        if self.met_newer_ts_data == NewerTsCheckState::NotMetYet {
+            self.met_newer_ts_data = NewerTsCheckState::Met;
+        }
+        lock.check_ts_conflict(user_key, self.ts, &amp;self.bypass_locks)
+            .map_err(Into::into)
+    } else {
+        Ok(())
+    }
+}
+<span class="boring">}
+</span></code></pre></pre>
+<p>And then we'll use <code>PointGetter</code>'s <code>load_data</code>  method to load the value.</p>
+<p>Now we have the value in <code>GetResponse</code>. But if the key is locked, client still need to resolve the locked keys. This will still be handled in  <code>retry_response_stream</code>.</p>
+<h4><a class="header" href="#resolve-locks" id="resolve-locks">Resolve locks</a></h4>
+<p>First, the client will take the locks we met from the response, and then we'll use <code>resolve_locks</code> to try to resolve them:</p>
+<p>We find all the locks which are expired, and resolve them one by one. </p>
+<p>Then we'll get <code>lock_version</code>'s corresponding <code>commit_version</code> (might be buffered), and use it to send <code>cleanup_request</code>.</p>
+<p>It seems that using <code>CleanupRequest</code> directly is deprecated after 4.0 , then we'll simply igonre it.</p>
+<p>And then it is the key point: <a href="https://github.com/tikv/client-rust/blob/07194c4c436e393358986b84daa2ad1e41b4886c/src/transaction/lock.rs#L74"><code>resolve_lock_with_retry</code></a>, this function will construct a  <code>ResolveLockRequest</code>, and send it to TiKV to execute.</p>
+<p>Let's turn to TiKV's source code, according to whether the <code>key</code> on the request is empty, <code>ResolveLockRequest</code> will be converted into <code>ResolveLockReadPhase</code> + <code>ResolveLock</code> or <code>ResolveLockLite</code>. The difference between those two is that <code>ResolveLockLite</code> will only handle the locks <code>Request</code> ask for resolve, while <code>ResolveLock</code> will resolve locks in a whole region.</p>
+<p>The handling of <code>ResolveLock</code> has 2 parts: the read phase is <a href="https://github.com/tikv/tikv/blob/bf716a111fde9fe8da56f8bd840c53d80c395525/src/storage/txn/process.rs#L122">here</a>, which is resposible for read out the locks and construct the write phase command, and the write phase is <a href="https://github.com/TiKV/TiKV/blob/82d180d120e115e69512ea7f944e93e6dc5022a0/src/storage/txn/process.rs#L775">here</a>, which is responsible for the release work.</p>
+<p>These two code part uses <code>MvccTxn</code> and <code>MvccReader</code>, we'll explain them later in another article.</p>
+<p><a href="https://github.com/tikv/tikv/blob/bf716a111fde9fe8da56f8bd840c53d80c395525/src/storage/txn/commands/resolve_lock.rs#L17">Comments</a> here gives a good intruduction of what <code>ResolveLock</code> do.</p>
+<p>After all <code>expired_locks</code> are resolved, a new <code>GetRequest</code> is sent, and the get process will be done again until it success.</p>
+<p>And then, the result value is returned. (Finally!)</p>
+<p>Let's summerize the process with a dataflow diagram.</p>
+<p><img src="doc/tikv/transaction-handling-newbie-perspective/single-point-get-dfd.svg" alt="single-point-get-dfd" /></p>
+<h3><a class="header" href="#scan" id="scan">Scan</a></h3>
+<p>On the client side, scan is almost the same as single point get, except that it sends a <a href="https://github.com/pingcap/kvproto/blob/5f564ec8820e3b4002930f6f3dd1fcd710d4ecd0/proto/tikvpb.proto#L22"><code>KvScan</code></a> grpc call instead of <code>KvGet</code>.</p>
+<p>And on the TiKV side, things are a little different, firstly, the request will be handled by <a href="https://github.com/tikv/tikv/blob/bf716a111fde9fe8da56f8bd840c53d80c395525/src/server/service/kv.rs#L1161"><code>future_scan</code></a>, and then <a href="https://github.com/tikv/tikv/blob/bf716a111fde9fe8da56f8bd840c53d80c395525/src/storage/mod.rs#L443"><code>Storage::scan</code></a>，and finally we'll find out the function which really do the job is a <a href="https://github.com/tikv/tikv/blob/bf716a111fde9fe8da56f8bd840c53d80c395525/src/storage/mvcc/reader/scanner/mod.rs#L171"><code>Scanner</code></a>, and we'll cover this part in another document. </p>
+<h3><a class="header" href="#write" id="write">Write</a></h3>
+<p>In fact, write just write to local buffer. All data modifications will be sent to TiKV on prewrite.</p>
+<h3><a class="header" href="#commit" id="commit">Commit</a></h3>
+<p>Now comes the most interesting part: commit, just like what I mentioned, commit in TiKV is based on <a href="https://research.google/pubs/pub36726/">Percolator</a>, but there are several things that are different:</p>
+<ul>
+<li>
+<p><a href="https://research.google/pubs/pub36726/">Percolator</a> depends on BigTable's single row transaction, so we must implement something alike by ourselves in TiKV.</p>
+</li>
+<li>
+<p>We need to support pessimistic transaction</p>
+<p>Pessimistic transaction enable TiDB to have a better MySQL compatibility, and save rollbacks under high load.</p>
+<p>But it introduces some other problems such as:</p>
+<ul>
+<li>
+<p>dead lock</p>
+<p>In optimistic transaction handling, dead lock won't happen because in the prewrite stage, a transaction would about if another transaction holds a lock it needs, and in the read stage, the locks from a dead transaction are resolved.</p>
+</li>
+</ul>
+</li>
+</ul>
+<p>So let's see how TiKV deal with these things.</p>
+<h4><a class="header" href="#client" id="client">Client</a></h4>
+<p>From the client side, the commit process is easy, you can see we use a <a href="https://github.com/tikv/client-rust/blob/fe765f191115d5ca0eb05275e45e086c2276c2ed/src/transaction/transaction.rs#L249"><code>TwoPhaseCommitter</code></a> to do the commit job, and what it does is just as the <a href="https://research.google/pubs/pub36726/">Percolator</a> paper says: <a href="https://github.com/tikv/client-rust/blob/fe765f191115d5ca0eb05275e45e086c2276c2ed/src/transaction/transaction.rs#L278"><code>prewrite</code></a>, <a href="https://github.com/tikv/client-rust/blob/fe765f191115d5ca0eb05275e45e086c2276c2ed/src/transaction/transaction.rs#L293"><code>commit_primary</code></a> and finally <a href="https://github.com/tikv/client-rust/blob/fe765f191115d5ca0eb05275e45e086c2276c2ed/src/transaction/transaction.rs#L310"><code>commit_secondary</code></a>.</p>
+<h4><a class="header" href="#acquirepessimisticlock" id="acquirepessimisticlock">AcquirePessimisticLock</a></h4>
+<p>This is used in the pessimistic transaction handling. It locks certain keys to prevent them from being changed by other transactions.</p>
+<p>This one does not exists in client-rust for now, so you have to read TiDB's code <a href="https://github.com/pingcap/tidb/blob/3748eb920300bd4bc0917ce852a14d90e8e0fafa/store/tikv/pessimistic.go#L58">here</a>.</p>
+<p>Basically, it sends a <code>PessimisticLockRequest</code> to TiKV, and TiKV will handle it <a href="https://github.com/tikv/tikv/blob/bf716a111fde9fe8da56f8bd840c53d80c395525/src/storage/txn/process.rs#L397">here</a>, it just run <code>MvccTxn::acquire_pessimistic_lock</code> for each key to lock, which just put a lock on the key, the lock is just like the lock used in prewrite in optimistic transaction, the only differece is its type is <code>LockType::Pessimistic</code>.</p>
+<p>And the it returns whether the lock is successful. If not, it will also <a href="https://github.com/tikv/tikv/blob/bf716a111fde9fe8da56f8bd840c53d80c395525/src/storage/txn/process.rs#L447">return the lock to wait for</a>.</p>
+<h4><a class="header" href="#prewrite" id="prewrite">Prewrite</a></h4>
+<p>On TiKV side, the prewrite process happens <a href="https://github.com/tikv/tikv/blob/4a75902f266fbbc064f0c19a2a681cfe66511bc3/src/storage/txn/process.rs#L557">here in <code>process_write_impl</code></a>.</p>
+<p>The first few lines of code (<code>if rows &gt; FORWARD_MIN_MUTATIONS_NUM</code> part) is not covered by the <a href="https://pingcap.com/blog-cn/tikv-source-code-reading-12/"><code>TiKV Source Code Reading blogs</code></a>. I guess it means:</p>
+<pre><code>if there's no &quot;write&quot; record in [mutations.minKey, mutation.maxKey] {
+	skip_constraint_check = true;
+  scan_mode = Some(ScanMode::Forward)
+}
+</code></pre>
+<p>As far as I understand, it just provides a optimized way of checking the &quot;write&quot; column, see <a href="https://github.com/tikv/tikv/pull/5846">tikv#5846</a> for details.</p>
+<p>And no matter whether this branch is taken, we'll construct a <code>MvccTxn</code> , and then use it to do the prewrite job for each mutation the client sent to the TiKV server.</p>
+<p>The <a href="https://github.com/tikv/tikv/blob/4a75902f266fbbc064f0c19a2a681cfe66511bc3/src/storage/mvcc/txn.rs#L563"><code>MvccTxn::prewrite</code></a> function just do what the <a href="https://research.google/pubs/pub36726/">Percolator</a> describes: check the <code>write</code> record in <code>[start_ts, ∞]</code> to find a newer write (this can be bypassed if <code>skip_constraint_check</code> is set, we can ignore this check safely in situations like import data). And then check whether the current key is locked at any timestamp. And finally use <a href="https://github.com/tikv/tikv/blob/bf716a111fde9fe8da56f8bd840c53d80c395525/src/storage/mvcc/txn.rs#L207"><code>prewrite_key_value</code></a> to lock the key and write the value in.</p>
+<h5><a class="header" href="#latches" id="latches">Latches</a></h5>
+<p>Just as I mentioned, there's no such things like &quot;single row transaction&quot; in TiKV, so we need another way to prevent the key's locking state changed by another transaction during <code>prewrite</code>.</p>
+<p>TiKV use <a href="https://github.com/tikv/tikv/blob/bf716a111fde9fe8da56f8bd840c53d80c395525/src/storage/txn/latch.rs#L125"><code>Latches</code></a> to archieve this, you can consider it as a Map from key('s hashcode) to mutexes. You can lock a key in the <code>Latches</code> to prevent it be used by other transactions.</p>
+<p>The latches is used in <a href="https://github.com/tikv/tikv/blob/bf716a111fde9fe8da56f8bd840c53d80c395525/src/storage/txn/scheduler.rs#L335"><code>try_to_wake_up</code></a> , this is called before each command is executed, it will lock all the latches the commands used.</p>
+<p><img src="doc/tikv/transaction-handling-newbie-perspective/prewrite-dfd.svg" alt="prewrite-dfd" /></p>
+<h4><a class="header" href="#prewritepessimistic" id="prewritepessimistic">PrewritePessimistic</a></h4>
+<p><a href="https://github.com/tikv/tikv/blob/3a4a0c98f9efc2b409add8cb6ac9e8886bb5730c/src/storage/txn/process.rs#L624"><code>PrewritePessimistic</code>'s handling</a> is very similiar to <code>Prewrite</code>, except it:</p>
+<ul>
+<li>doesn't need to read the write record for checking conflict, because the potential conflicts have already checked during acquiring the lock</li>
+<li>downgrade the pessimistic lock to optimistic lock during prewrite, so the following commit process would be the same as the commit process in optmistic transaction handling</li>
+<li>needs to prevent deadlock</li>
+</ul>
+<h5><a class="header" href="#dead-lock-handling" id="dead-lock-handling">Dead lock handling</a></h5>
+<p>There won't be a dead lock in the optimistic transaction handling process, because we can know all the keys to lock during the prewrite process, so we can lock them in order.</p>
+<p>But during the pessimistic transaction handling process, the situation is very different: when to lock a key or which keys to lock are totally decided by the user, so for example:</p>
+<pre><code>transaction A:
+	lock key a;
+	do some process;
+	lock key b;
+	do some other process;
+commit
+</code></pre>
+<p>and</p>
+<pre><code>transaction B:
+	lock key b;
+	do some process;
+	lock key a;
+	do some other process;
+commit
+</code></pre>
+<p>If you are unlucky, transaction A will hold the lock on <code>a</code> and try to get the lock on <code>b</code>, and transaction B will hold the lock <code>b</code> and try to get the lock on <code>a</code>, and neither of them can get the lock and continue with their jobs, so a dead lock occurred.</p>
+<p>TiKV use deadlock detection to prevent this kind of situation.</p>
+<p>The deadlock detector is made up with two parts: the <a href="https://github.com/tikv/tikv/blob/bf716a111fde9fe8da56f8bd840c53d80c395525/src/server/lock_manager/mod.rs#L49"><code>LockManager</code></a> and the <a href="https://github.com/tikv/tikv/blob/3a4a0c98f9efc2b409add8cb6ac9e8886bb5730c/src/server/lock_manager/deadlock.rs#L467"><code>Detector</code></a>.</p>
+<p>Basically, these two make a <em>Directed acyclic graph</em> with the transactions and the locks it require, if adding a node may break the &quot;acyclic&quot; rule, then a potential deadlock is detected, a separate doc will be add to describe the <a href="https://github.com/tikv/tikv/blob/bf716a111fde9fe8da56f8bd840c53d80c395525/src/server/lock_manager/mod.rs#L49"><code>LockManager</code></a>.</p>
+<h4><a class="header" href="#do-commit" id="do-commit">(Do) Commit</a></h4>
+<p>After <code>prewrite</code> is done, the client will do the commit works: first commit the primary key, then the secondary ones, both these two kind of keys' commit are represented by the <code>Commit</code> command and handled <a href="https://github.com/tikv/tikv/blob/bf716a111fde9fe8da56f8bd840c53d80c395525/src/storage/txn/process.rs#L454">here</a>. </p>
+<p>In the commit process we just use <a href="https://github.com/tikv/tikv/blob/bf716a111fde9fe8da56f8bd840c53d80c395525/src/storage/mvcc/txn.rs#L681"><code>MvccTxn::commit</code></a> to commit each key, which it does is much like <a href="https://research.google/pubs/pub36726/">Percolator</a> describes,.</p>
+<p>We also collect the released locks and use it to <a href="https://github.com/tikv/tikv/blob/17e75b6d1d1a8f1fb419f8be249bc684b3defbdb/src/storage/txn/process.rs#L513">wake up the waiting pessimistic transactions</a>.</p>
+<h3><a class="header" href="#rollback" id="rollback">Rollback</a></h3>
+<h4><a class="header" href="#optimistic-rollback" id="optimistic-rollback">(Optimistic) Rollback</a></h4>
+<p>On the client side, <a href="https://github.com/tikv/client-rust/blob/fe765f191115d5ca0eb05275e45e086c2276c2ed/src/transaction/transaction.rs#L327">rollback</a> just construct a <code>BatchRollbackRequest</code> with the keys changed in this transaction and a <code>start_version</code> which identify the transaction to be rolled back, and send it to server.</p>
+<p>On the server side, it just call <a href="https://github.com/tikv/tikv/blob/1709de63b3b66f474ff757133a8a1076cf77f196/src/storage/mvcc/txn.rs#L732"><code>MvccTxn::rollback</code></a> <a href="https://github.com/tikv/tikv/blob/1709de63b3b66f474ff757133a8a1076cf77f196/src/storage/txn/process.rs#L778">here</a>, and <a href="https://github.com/tikv/tikv/blob/1709de63b3b66f474ff757133a8a1076cf77f196/src/storage/mvcc/txn.rs#L732"><code>MvccTxn::rollback</code></a> is a direct proxy to <a href="https://github.com/tikv/tikv/blob/1709de63b3b66f474ff757133a8a1076cf77f196/src/storage/mvcc/txn.rs#L795"><code>MvccTxn::cleanup</code></a>.</p>
+<p>Let's view the code in <a href="https://github.com/tikv/tikv/blob/bf716a111fde9fe8da56f8bd840c53d80c395525/src/storage/mvcc/txn.rs#L831"><code>MvccTxn::cleanup</code></a>:</p>
+<p>The first branch in the <code>match</code> is taken when there's a lock on the key.</p>
+<p><code>!current_ts.is_zero()</code> is always false in the rollback situation, so we'll ignore it here.</p>
+<p>Then we'll call <a href="https://github.com/tikv/tikv/blob/bf716a111fde9fe8da56f8bd840c53d80c395525/src/storage/mvcc/txn.rs#L263"><code>MvccTxn::rollback_lock</code></a>:</p>
+<p>First remove the value written if necessary:</p>
+<pre><pre class="playground"><code class="language-rust edition2018">
+<span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>if lock.short_value.is_none() &amp;&amp; lock.lock_type == LockType::Put {
+	self.delete_value(key.clone(), lock.ts);
+}
+<span class="boring">}
+</span></code></pre></pre>
+<p>And then put the write record.</p>
+<pre><pre class="playground"><code class="language-rust edition2018">
+<span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>let protected: bool = is_pessimistic_txn &amp;&amp; key.is_encoded_from(&amp;lock.primary);
+let write = Write::new_rollback(self.start_ts, protected);
+self.put_write(key.clone(), self.start_ts, write.as_ref().to_bytes());
+<span class="boring">}
+</span></code></pre></pre>
+<p>And then collapse the prev rollback if necessary:</p>
+<pre><pre class="playground"><code class="language-rust edition2018">
+<span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>if self.collapse_rollback {
+	self.collapse_prev_rollback(key.clone())?;
+}
+<span class="boring">}
+</span></code></pre></pre>
+<p>Finally unlock the key:</p>
+<pre><pre class="playground"><code class="language-rust edition2018">
+<span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>Ok(self.unlock_key(key, is_pessimistic_txn))
+<span class="boring">}
+</span></code></pre></pre>
+<p>On the other hand, in <a href="https://github.com/tikv/tikv/blob/1709de63b3b66f474ff757133a8a1076cf77f196/src/storage/mvcc/txn.rs#L795"><code>MvccTxn::cleanup</code></a>, when there's no lock on the key, first we'll use <a href="https://github.com/tikv/tikv/blob/1709de63b3b66f474ff757133a8a1076cf77f196/src/storage/mvcc/txn.rs#L745"><code>check_txn_status_missing_lock</code></a> to decide the status of the transaction, if the transaction has already committed, return an error, else it is ok.</p>
+<h4><a class="header" href="#pessimistic-rollback" id="pessimistic-rollback">Pessimistic Rollback</a></h4>
+<p>The only difference between the handling of <code>PessimisticRollback</code> and <code>Rollback</code> is <code>PessimisticRollback</code> use <a href="https://github.com/tikv/tikv/blob/1709de63b3b66f474ff757133a8a1076cf77f196/src/storage/mvcc/txn.rs#L842"><code>MvccTxn::pessimistic_rollback</code></a> here.</p>
+<p>And the only job <a href="https://github.com/tikv/tikv/blob/1709de63b3b66f474ff757133a8a1076cf77f196/src/storage/mvcc/txn.rs#L842"><code>MvccTxn::pessimistic_rollback</code></a> is to remove the lock the transaction put on the key.</p>
+<h2><a class="header" href="#summary" id="summary">Summary</a></h2>
+<p>This article gives a brief introduction on how transactions are handled in TiKV, and contain links which shows us where are the code corresponding to some certain action.</p>
+<p>This is just a high-level and brief introduction, we did not dive very deep into several parts of the code base, eg. the mvcc part, the scheduler. But I hope this article can give you a basic view of TiKV's transaction handling system and help you to get farmiliar of some of our code base.</p>
+<h1><a class="header" href="#transaction-layer-refactoring" id="transaction-layer-refactoring">Transaction Layer Refactoring</a></h1>
+<h2><a class="header" href="#motivation" id="motivation">Motivation</a></h2>
+<p>At the very beginning, all transactional commands in TiKV share common procedures:</p>
+<ol>
+<li>Acquire latches</li>
+<li>Check constraints and generate modifications</li>
+<li>Apply modifications to the raft store</li>
+<li>Reply to RPC and release the latches</li>
+</ol>
+<p>After the latches and the snapshot are acquired, all the commands depend on nothing else, so we needn't care about passing dependencies in deeply.</p>
+<p>So the current implementation structure is natural and great: different commands are wrapped as enum variants and go through the whole process. In each step we match the type of command and do specific work.</p>
+<p>However, as more commands and optimizations are added, this is not always the case. Some commands breaks the procedure and adds dependencies.</p>
+<p>For example, the &quot;pipelined pessimistic lock&quot; replies before the raft store finishes replication, which is not following the common procedure. Also, when an <code>AcquirePessimisticLock</code> command meets a lock, it needs to wait for the lock being released in TiKV for a while. And when a lock is released, the awaiting <code>AcquirePessimisticLock</code> commands are notified. These are distinctive steps that are not shared by other commands. More dependencies (the lock manager and the deadlock detector) are also introduced.</p>
+<p>If more and more commands are not sharing the same procedure and dependencies, the current structure will have no benefit. Instead, the drawbacks become clearer.</p>
+<p>The code for a certain command is spread in too many files. Each function handles a part of work of various commands. People are hard to understand what happens about a single command.</p>
+<p>And now, different commands have different dependencies. But because all commands share the same procedure, we must pass in the union of all dependencies of all commands. It makes adding commands and dependencies more difficult.</p>
+<h2><a class="header" href="#new-structure" id="new-structure">New structure</a></h2>
+<p>Based on the analysis above, the current structure is not flexible enough and should be dropped. Instead, we can change to put logic of a single command together. Common steps can be extracted as methods for reuse. Then, it will be much easier to find out the procedure of each command while still not repeating code.</p>
+<p>Steps like acquiring latches and waiting for raft replication cannot finish immediately, so it is appropriate to make every command an <code>async fn</code>.</p>
+<p>For example, the <code>AcquirePessimisticLock</code> command can be like:</p>
+<pre><pre class="playground"><code class="language-rust edition2018">
+<span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>async fn acquire_pessimistic_lock(&amp;self, req: PessimisticLockRequest) -&gt; PessimisticLockResponse {
+    let mut resp = PessimisticLockResponse::default();
+    let guards = self.lock_keys(req.mutations.iter().map(|m| m.get_key())).await;
+    let snapshot = self.get_snapshot(req.get_context()).await;
+    
+    let mut txn = MvccTxn::new(...);
+    let mut locked = None;
+    for (mutation, guard) in req.mutations.into_iter().zip(&amp;guards) {
+        match txn.acquire_pessimistic_lock(...) {
+            Ok(...) =&gt; ...,
+            Err(KeyIsLocked(lock_info)) =&gt; {
+                guard.set_lock(lock_info.clone());
+                let lock_released = guard.lock_released(); // returns a future which is ready when the lock is released
+                locked = Some(lock_info, );
+            },
+            Err(e) =&gt; ...
+        }
+    }
+    
+    if let Some((lock_info, lock_released)) = locked {
+        drop(guards); // release the latches first
+        lock_released.await; // easy to add timeout
+        resp.set_errors(...);
+    } else {
+        if self.cfg.pipelined_pessimistic_lock {
+            // write to the raft store asynchronously
+            let engine = self.engine.clone();
+            self.spawn(async move {
+                engine.write(txn.into_modifies()).await;
+                drop(guards);
+            });
+        } else {
+            // write to the raft store synchronously
+            self.engine.write(txn.into_modifies()).await; 
+        }
+        ...
+    }
+    resp
+}
+<span class="boring">}
+</span></code></pre></pre>
+<p>The goal is to put the whole process of each command inside a single function. Then, people only need to look at one function to learn the process. Code related to transactions will be more understandable.</p>
+<p>Moreover, long code paths and jumps are avoided. It's never a problem that dependencies and configurations need be passed through the long path.</p>
+<h2><a class="header" href="#in-memory-lock-table" id="in-memory-lock-table">In-memory lock table</a></h2>
+<p>Both the latch and the lock manager stores memory locks and notify when the locks are released. For &quot;async commit&quot;, we also need another memory locking mechanism. It'll be good to have an integrated locking mechanism handling all these requirements.</p>
+<p>We can use a concurrent ordered map to build a lock table. We map each encoded key to a memory lock. The memory lock contains lock information and waiting lists. Currently we have two kinds of orthogonal waiting list: the latch waiting list and the pessimistic lock waiting list. </p>
+<pre><pre class="playground"><code class="language-rust edition2018">
+<span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>pub type LockTable = ConcurrentOrderedMap&lt;Key, Arc&lt;MemoryLock&gt;&gt;;
+
+pub struct MemoryLock {
+    mutex_state: AtomicU64,
+    mutex_waiters: ConcurrentList&lt;Notify&gt;
+    lock_info: Mutex&lt;Option&lt;LockInfo&gt;&gt;,
+    pessimistic_waiters: ConcurrentList&lt;Notify&gt;,
+}
+<span class="boring">}
+</span></code></pre></pre>
+<p>Both the original latches and lock manager can be implemented with this memory lock.</p>
+<p>For the original latch usage, the lock serves as an asynchronous mutex. It can return a future that outputs a guard. The guard can be used to modify the data in the memory lock. When the guard is dropped, other tasks waiting for the lock are notified.</p>
+<p>For the lock manager usage, it provides the functionality to add waiters and modify the lock information. When <code>AcquirePessimisticLock</code> meets a lock, it adds itself to the waiting list and stores the lock information. When the lock is cleared, the waiters are all notified.</p>
+<p>When a guard is dropped, if neither a lock nor any waiter is in the lock, we can remove the key from the map to save memory.</p>
+<h3><a class="header" href="#async-commit" id="async-commit">Async commit</a></h3>
+<p>The &quot;async commit&quot; feature can be also implemented with this lock table. During prewrite, the lock is written to the memory lock before it is sent to the raft store. Before any read request start, we read the lock info in the memory lock. If the <code>min_commit_ts</code> recorded in the lock is smaller than the snapshot time stamp, we can return a locked error directly.</p>
+<pre><pre class="playground"><code class="language-rust edition2018">
+<span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>async fn prewrite(&amp;self, req: PrewriteRequest) -&gt; PrewriteResponse {
+    ...
+    for (lock, guard) in ... {
+        // read max_read_ts and set lock atomically
+        guard.set_lock(lock, |lock| lock.min_commit_ts = self.max_read_ts() + 1);
+    }
+    ...
+}
+
+async fn get(&amp;self, req: GetRequest) -&gt; GetResponse {
+    ...
+    if let Err(lock) = self.read_check_key(req.get_key(), req.version.into()) {
+        ...
+    }
+    ...
+}
+
+fn read_check_key(&amp;self, key: &amp;Key, ts: TimeStamp) -&gt; Result&lt;(), LockInfo&gt; {
+    self.update_max_read_ts(ts);
+    if let Some(lock) = self.lock_table.get(key) {
+        let lock_info = lock.lock_info.lock().unwrap();
+        if ... {
+            return Err(lock_info.clone());
+        }
+    }
+    Ok(())
+}
+
+fn read_check_range(&amp;self, start_key: &amp;Key, end_key: &amp;Key, ts: TimeStamp) -&gt; Result&lt;(), LockInfo&gt; {
+    self.update_max_read_ts(ts);
+    if let Some((key, lock)) = self.lock_table.lower_bound(start_key) {
+        if key &lt; end_key {
+            let lock_info = lock.lock_info.lock().unwrap();
+            if ... {
+                return Err(lock_info.clone());
+            }
+        }
+    }
+    Ok(())
+}
+<span class="boring">}
+</span></code></pre></pre>
+<h1><a class="header" href="#async-commit-1" id="async-commit-1">Async commit</a></h1>
+<p>This directory contains design documentation for async commit. Implementation is in progress, see <a href="design/async-commit/project-summary.html">project summary</a>.</p>
+<p>Implementation is tracked in a <a href="https://github.com/tikv/sig-transaction/issues/36">tracking issue</a> and <a href="https://github.com/tikv/tikv/projects/34">TiKV project</a>.</p>
+<h2><a class="header" href="#overview" id="overview">Overview</a></h2>
+<p>The key idea is that we can return success to the user (from TiDB) when all prewrites have succeeded, because at that point we know that commit will not fail. By returning at this point we save a round trip between TiDB and TiKV which includes a consensus write of the commit.</p>
+<p>This modification is sound because the source of truth for whether a transaction is committed is considered to be distributed among all locks.</p>
+<p>The main difficulty is in choosing a timestamp for the commit ts of the transaction.</p>
+<h2><a class="header" href="#protocol" id="protocol">Protocol</a></h2>
+<p>This section is a little out of date, refer to <a href="design/async-commit/initial-design.html">initial-design.md</a> for a more up to date version.</p>
+<h3><a class="header" href="#phase-1-reads-and-writes" id="phase-1-reads-and-writes">Phase 1: reads and writes</a></h3>
+<p>The client (TiDB) sends <code>lock</code> messages to the server (TiKV) for each <code>SELECT ... FOR UPDATE</code>. Each lock message has a <code>for_update_ts</code>.</p>
+<p>Modifications are collected in a buffer and sent as a <code>prewrite</code> message. No reads are permitted after prewrite.</p>
+<p>The client gets a start TS for the whole transaction which is included with every message.</p>
+<p>For both messages, the server checks validity and writes locally. It then sends an <code>ack</code> back to the client. For a read, the read value is returned with the ack. Then the server writes the lock and/or modifications to the RaftStore (a 'consensus write'). After the consensus write completes, the server sends a <code>response</code> to the client.</p>
+<p>For every lock and modification, the server writes a lock to the key's lock CF; each lock stores a reference to the transaction's primary key. For modifications, we also store a value in the default CF.</p>
+<p>For the primary key's lock, we store a list of keys in the transaction and their status (whether the key is locked locally, across all nodes, or unlocked), plus an overall status for the transaction.</p>
+<p>TODO multiple regions.</p>
+<h3><a class="header" href="#phase-2-finalisation-formerly-commit" id="phase-2-finalisation-formerly-commit">Phase 2: finalisation (formerly commit)</a></h3>
+<p>When the client has <code>response</code>s (not <code>ack</code>s) for every message in a transaction, it sends a single <code>finalise</code> message to the server. The client considers the transaction complete when it sends the <code>finalise</code> message, it does not need to wait for a response. The client obtains the commit ts from PD for the finalise message.</p>
+<p>When the server receives a <code>finalise</code> message, it <em>commits</em> the transaction. Committing is guaranteed to succeed.</p>
+<p>Possible optimisation: the server could finalise the transaction when the prewrite completes without involving the client (see the resolve lock section).</p>
+<p>Writes are added to each key which is written, with the commit ts from the primary key. The server unlocks all keys, primary key last. </p>
+<h3><a class="header" href="#reads" id="reads">Reads</a></h3>
+<p>On read, if a key is locked, then we must look up the primary key and it's lock which holds the transaction record. We wait for the lock's ttl to expire (based on the read's <code>for_update_ts</code>). After the ttl expires, if the key is unlocked, the read can progress. Otherwise we must resolve the lock in some way.</p>
+<h3><a class="header" href="#resolve-lock" id="resolve-lock">Resolve lock</a></h3>
+<p>(Called TSRP in CRDB).</p>
+<p>Resolve lock determines a transaction's commit status. If the transaction has been rolled back or committed, there is nothing to do. Otherwise, if every consensus write has succeeded, the transaction is committed. Otherwise, the transaction is considered to have timed out and is rolled back.</p>
+<p>First we check the txn's state as recorded in the primary key. If it is written to Raft, then we can finalise (something must have failed in finalisation or finalisation was never received). (I think this is only an optimisation, we could skip this step and go straight to the next).</p>
+<p>Otherwise, we check each lock, if all locks have state consensus write, then we run finalisation. If any lock is only written locally or has failed, then we must rollback the transaction. NOTE: this might require communicating with other nodes due to keys in other regions.</p>
+<h3><a class="header" href="#rollback-1" id="rollback-1">Rollback</a></h3>
+<p>For each modification in a transaction, add a rollback write to the key and remove the lock. For each read, remove the lock. The primary lock should be removed last.</p>
+<p>TODO partial rollback with for_update_ts</p>
+<h2><a class="header" href="#issues" id="issues">Issues</a></h2>
+<p>See also <a href="design/async-commit/parallel-commit-known-issues-and-solutions.html">parallel-commit-known-issues-and-solutions.md</a>.</p>
+<h3><a class="header" href="#commit-timestamp" id="commit-timestamp">Commit timestamp</a></h3>
+<p>See <a href="design/async-commit/globally-non-unique-timestamps.html">parallel-commit-known-issues-and-solutions.md</a> for discussion.</p>
+<p>In the happy path, there is no problem. However, if the finalise message is lost then when we resolve the lock and the transaction needs committing, then we need to provide a commit timestamp. Unfortunately it seems there is no good answer for what ts to use.</p>
+<p>Consider the following example: transaction 1 with start_ts = 1, prewrite @ ts=2, finalise @ ts=4. Transaction 2 makes a non-locking read at ts = 3. If all goes well, this is fine: the transaction is committed by receiving the finalise message with commit_ts = 4. If the read arrives before commit, it finds the key locked and blocks. After the commit it will read the earlier value since its ts is &lt; the commit ts.</p>
+<p>However, if the finalise message is lost, then we must initiate a 'resolve lock' once the lock times out. There are some options; bad ideas:</p>
+<ul>
+<li>Use the prewrite ts: this is unsound because the ts is less than the read's ts and so the read will see different values for the key depending on whether it arrives before or after the commit happening, even though its ts is &gt; than the commit ts. That violates the Read Committed property.</li>
+<li>Transaction 2 returns an error to TiDB and TiDB gets a new ts from PD and uses that as the commit_ts for the resolve lock request. This has the disadvantage that non-locking reads can block and then fail, and require the reader to resolve locks. This timestamp is also later than the timestamp that transaction 1's client thinks it is, which can lead to RC violation.</li>
+<li>Get a new ts from PD. This has the problem that TiDB may have reported the transaction as committed at an earlier times stamp to the user, which can lead to RC violation.</li>
+</ul>
+<p>Possibly good ideas:</p>
+<ul>
+<li>Record the 'max read ts' for each key. E.g., when the read arrives, we record 3 as the max_read_ts (as long as there is no hight read timestamp). We can then use <code>max_read_ts + 1</code> as the commit ts. However, that means that timestamps are no longer unique. It's unclear how much of a problem that is. If it is implemented on disk, then it would increase latency of reads intolerably. If it is implemented in memory it could use a lot of memory and we'd need to handle recovery somehow (we could save memory by storing only a per-node or per-region max read ts).</li>
+<li>Use a hybrid logical clock (HLC) for timestamps. In this way we can enforce causal consistency rather than linearisability. In effect, the ordering of timestamps becomes partial and if the finalise message is lost then we cannot compare transaction 1's timestamps with transaction 2's timestamps without further resolution. Since this would require changing timestamps everywhere, it would be <em>a lot</em> of work. Its also not clear exactly how this would be implemented and how this would affect transaction 2. Seems like at the least, non-locking reads would block.</li>
+</ul>
+<p>In order to guarantee SI, <code>commit_ts</code> of T1 needs to satisfy:</p>
+<ul>
+<li>It is larger than the <code>start_ts</code> of any other transaction which has read the old value of a key written by T1.</li>
+<li>It is smaller than the <code>start_ts</code> of any other transaction which reads the new value of any key written by T1.</li>
+</ul>
+<p>Note that a transaction executing in parallel with T1 which reads a key written by T1 can have <code>start_ts</code> before or after T1's <code>commit_ts</code>.</p>
+<p>Consider all cases of Parallel Commit:</p>
+<ul>
+<li>Normal execution process: After Prewrite is completed, TiKV will return a response to the client. If it is to take the <code>commit_ts</code> asynchronously afterwards, then the client could start a new transaction between the time of receiving the response and the time of TiKV getting a <code>commit_ts</code>. The new transaction would therefore read the old value of a key modified by the first transaction which violates RC. A solution is for TiKV to first obtain a timestamp and return that to the client as part of the prewrite response, then use that timestamp to commit.</li>
+<li>After Prewrite succeeds, the client disappears, but the transaction is successfully committed. How to choose a <code>commit_ts</code>? A new timestamp from PD is not communicated to the client. Some timestamp must be persisted in TiKV.</li>
+</ul>
+<p>Parallel Commit is considered to be a successful commit after all prewrites are successful. Transactions after this must be able to see it, and transactions before this can not see it. How to guarantee this?</p>
+<p>A solution is for tikv to maintain a <code>max_start_ts</code>. When a prewrite writes its locks and returns to the client, use <code>max(max_start_ts for each key) + 1</code> to submit. If finalisation fails and a client resolves a lock, TiKV can recalculate <code>commit_ts</code>.</p>
+<p>The essence of solving this type of problem is to postpone operations that may cause errors until the operation is not an error. Two possible solutions are:</p>
+<ul>
+<li>The region records <code>min_commit_ts</code>, which is the smallest <code>commit_ts</code> of a prewrite of any async commit transaction currently in progress (i.e., between prewrite and commit) may use. Every in-progress transaction must have a <code>commit_ts &gt;= min_commit_ts</code>. For every read request to the region, if its <code>start_ts</code> is greater than <code>min_commit_ts</code>, the read request blocks until <code>min_commit_ts</code> is greater than <code>start_ts</code>.</li>
+<li>The above can be refined by shrinking the granularity from a whole region level to a single key. Two implementation options:
+<ul>
+<li>The lock is written to memory first, then <code>max_start_ts</code> is obtained and then written to raftstore. When reading, first read the lock in the memory. After successfully writing to raftstore, the lock in memory is cleared, and the lock corresponding to the region is cleared when the leader switches.</li>
+<li>Use rocksdb as the storage medium for memory lock, first write to rocksdb, then write to raftstore. The implementation is also simple, and the effect is the same as a.</li>
+</ul>
+</li>
+</ul>
+<h3><a class="header" href="#initiating-resolve-lock" id="initiating-resolve-lock">Initiating resolve lock</a></h3>
+<p>As touched upon in the commit timestamp section above, it is not clear how resolve lock should be initiated. There are two options:</p>
+<ul>
+<li>TiKV resolves locks automatically.</li>
+<li>TiKV returns to TiDB which instantiates resolve lock.</li>
+</ul>
+<p>The TiKV approach is faster, but it means we have to get a timestamp from PD and that a read might block for a long time. The TiDB approach takes a lot longer, but is more correct.</p>
+<h3><a class="header" href="#replica-read" id="replica-read">Replica read</a></h3>
+<p>The above Commit Ts calculation does not consider the replica read situation, consider the following scenario:
+The leader's maxStartTs is 1, and async commit selects 1 + 1 = 2 as commitTs.
+The startTs of replica read is 3, and it should either see the lock or the data with commitTs of 2. However, due to log replication, replica read may fail to read the lock, which will destroy snapshot isolation.</p>
+<p>The solution is the same as prewrite solution 1:
+The read index request carries start ts. When region’s min commit ts &lt; req’s start ts, it is necessary to wait for the min commit ts to exceed start ts before responding to the read index.</p>
+<h3><a class="header" href="#change-of-leader" id="change-of-leader">Change of leader</a></h3>
+<p>The above structure is stored in the leader memory. Although there is no such information on the replica, it will interact with the leader, so it is easy to solve. How to solve the transfer leader? No need to solve, because the new leader must submit an entry for the current term to provide read and write services, so all the information in the previous memory will be submitted, and this part of the information is no longer needed.</p>
+<p>It should be noted that if the above scheme is adopted, this part of the memory information and pending requests must be processed when the leader changes.</p>
+<h3><a class="header" href="#blocking-reads" id="blocking-reads">Blocking reads</a></h3>
+<p>TODO</p>
+<h3><a class="header" href="#schema-check" id="schema-check">Schema check</a></h3>
+<p>The existing 2pc process checks the schema version before issue the final commit command, if we do async commit, we don't have a chance to check the schema version. If it has changed, we may break the index/row consistency.</p>
+<p>The above issue only happens if the transaction prewrite phase is too long, exceeds the 2 * ddl_lease time.</p>
+<h2><a class="header" href="#1pc" id="1pc">1PC</a></h2>
+<p>TODO</p>
+<h2><a class="header" href="#possible-optimisations" id="possible-optimisations">Possible optimisations</a></h2>
+<p>There are restrictions on the size of the transaction. For example, if the key involved in the transaction is less than 64, async commit is used, or a hierarchical structure is adopted. The primary lock records a few secondary locks, and these secondary locks record other secondary locks respectively. It is easy to implement, just recursion, and the cost of failure recovery needs to be considered.</p>
+<p>Crdb mentioned two ways to reduce the impact of recovery, and TiDB has also implemented: one is to perform commit cleanup as soon as possible when committing; the second is transaction heartbeat to prevent cleanup of alive transactions.</p>
+<h2><a class="header" href="#related-work" id="related-work">Related Work</a></h2>
+<h3><a class="header" href="#cockroach-db" id="cockroach-db">Cockroach DB</a></h3>
+<p>In CRDB, parallel commit extends pipelined pessimistic locking.</p>
+<p>crdb's transaction model is similar to TiDB in that both are inspired by percolator, but the crdb is a pessimistic transaction, every DML writes write intents, and they have many optimizations such as pipeline consensus write to reduce latency (which can also be used for pessimistic transactions). ), remain at 2PC until all write intents are written successfully on transaction commit. and update the transaction record (similar to primary key) to COMMITTED, and then returns success to the client after success.</p>
+<p><a href="https://www.cockroachlabs.com/blog/parallel-commits/">crdb mentions an optimization in Parallel Commits</a> that avoids the 2PC. The second stage has an effect on latency, similar to that of cross-region 1PC. The idea is simple: during the transaction commit phase, update the transaction record to STAGING state and record all the keys that the transaction will modify before waiting for the write The intents and transaction record are written successfully, and can then be returned to the The client succeeds, and crdb cleans up the commit asynchronously. Since the transaction record records all the keys in the firm, it is possible to use these keys as the basis for the Information to ensure atomic submission of transactions:</p>
+<ul>
+<li>If all write intents in the STAGING state of the transaction record are written successfully, the transaction commits successfully.</li>
+<li>If the transaction is not in STAGING or there is no transaction record or the write intents were not written successfully, the transaction commit fails.</li>
+</ul>
+<h2><a class="header" href="#resources-1" id="resources-1">Resources</a></h2>
+<ul>
+<li><a href="https://docs.google.com/document/d/1-yn5zyn8NpqXRii9sA5wDcNHL3L0BYVaEFyD-YChX1g/edit#">Zhao Lei's doc 中文 + en</a></li>
+<li><a href="https://www.cockroachlabs.com/blog/parallel-commits/">CockroachDB blog post</a></li>
+<li><a href="https://github.com/nrc/parcom">nrc's modelling effort</a></li>
+</ul>
+<h1><a class="header" href="#async-commit-2" id="async-commit-2">Async commit</a></h1>
+<p>Async commit is a change to the transaction protocols (optimistic and pessimistic). It allows returning success to the client once all prewrites succeed, without having to wait for a commit message. Safety is maintained by a having a more involved recovery procedure when another transaction encounters a lock which uses async commit. You can think of the commit status of a transaction as being distributed amongst all locks until the transaction is (asynchronously) committed.</p>
+<p>Async commit is based on <a href="https://www.cockroachlabs.com/blog/parallel-commits/">parallel commits</a>  in CRDB.</p>
+<p>We expect async commit to give significant improvements in the latency of transactions. Since we remove one network round trip from blocking successful return to the client, the latency could (in theory) almost halve. On the other hand, recovery requires significantly more work, so that will cause regression of transactions which encounter locks. Under most workloads, transactions are mostly uncontested, so we expect async commit to cause a large net improvement to latency. Because we are still doing essentially the same work as before, we expect that throughput will not be expected.</p>
+<p>Async commit for a single node is similar to one-phase commit. Full one-phase commit would skip the commit phase entirely since it must always succeed. This could be done later as an optimisation (it would not improve latency, but it would avoid the chance of needing recovery).</p>
+<p>The known risks and disadvantages of async commit are:</p>
+<ul>
+<li>because it require O(n) memory for the primary lock where n is the number of keys in the transaction, it will not work well for large transactions. We will address this by having a limit on the number of keys in an async commit transaction.</li>
+<li>Interactions with tools such as binlog and CDC is complex, and there may be unsolvable incompatibilities.</li>
+<li>Async commit is more complex than our other transaction protocols, and since we must support the other protocols as well, there is a significant impact on code complexity.</li>
+<li>Async commit is a new, relatively untested protocol so there is higher than usual risk that there may be correctness issues (e.g., we believe async commit <a href="https://github.com/tikv/tikv/issues/8589">affects</a> our linearizability guarantee).</li>
+</ul>
+<p>Due to transaction latency being a department-wide priority, and because we think async commit can have a large impact on it, async commit is high priority work for the TiDB Arch team. Our goal is to deliver async commit in the 5.0 release. Since it is a large feature with the possibility of causing serious and subtle bugs, we aim to finish implementation by end of September 2020 to leave enough time for iterative testing and improvement.</p>
+<h2><a class="header" href="#who-is-working-on-it" id="who-is-working-on-it">Who is working on it?</a></h2>
+<ul>
+<li>Responsible: Nick Cameron, Zhenjing, Zhao Lei, Yilin, Xu Rui, Zhongyang Guan</li>
+<li>Accountable: Xu Rui</li>
+<li>Consulted: Evan Zhou, Arthur Mao</li>
+<li>Informed: Arch team, sig-txn, eng, TiKV newsletter.</li>
+</ul>
+<h2><a class="header" href="#design" id="design">Design</a></h2>
+<p>For more detailed design docs, please see the <a href="https://github.com/tikv/sig-transaction/tree/master/design/parallel-commit">async commit directory</a>.</p>
+<h2><a class="header" href="#implementation" id="implementation">Implementation</a></h2>
+<p>The implementation requires a new proto in kvproto: <code>CheckSecondaryLocks</code>, and some changes to other protos, mostly adding a minimum commit timestamp.</p>
+<p>There are changes to TiKV's storage module to handle the <code>CheckSecondaryLocks</code> and the async commit protocol in prewrite, commit, and resolve locks. There are changes to TiDB's store/TiKV module to handle the changes to transaction handling. There are also changes to Unistore and tools such as CDC.</p>
+<p>The main complication in the implementation is handling timestamps. If a transaction must be recovered, and it has not been committed, but all prewrites succeeded, then we must come up with a timestamp. For various reasons, this is difficult see <a href="design/async-commit/">TODO</a> for some details. Our solution requires tracking the timestamps of reads to a region and permitting non-uniqueness of timestamps (the generated commit timestamp might be the same as another transaction's start or commit timestamp).</p>
+<h2><a class="header" href="#progress" id="progress">Progress</a></h2>
+<p>See the <a href="https://github.com/tikv/sig-transaction/issues/36">tracking issue</a> for current status.</p>
+<p>We are currently in implementation. Our first goal is an initial implementation which can demo'ed and benchmarked. This is effectively complete, although not all code has landed.</p>
+<p>The next increment is to test, benchmark, fix bugs, and optimise. The goal is to be finished and polished for the 5.0 release of TiKV.</p>
+<p>Much of the second increment is unknown since it depends on bugs and performance issues still to be discovered. Of the known work, my estimate is that we are 85% complete.</p>
+<p>Known risks are:</p>
+<ul>
+<li>there are soundness/correctness problems with the async commit algorithm which cannot be fixed.</li>
+<li>Performance improvement is not as significant as expected.</li>
+<li>There are many problems discovered during testing which cannot be fixed in time to release on schedule.</li>
+</ul>
+<p>TODO acceptance testing</p>
+<h1><a class="header" href="#async-commit-initial-design" id="async-commit-initial-design">Async Commit (initial design)</a></h1>
+<p>This document is focussed on the initial increments of work to implement a correct, but non-performant version of async commit.</p>
+<p>Implementation is tracked in <a href="https://github.com/tikv/sig-transaction/issues/36">issue 36</a>.</p>
+<h2><a class="header" href="#goals" id="goals">Goals</a></h2>
+<ul>
+<li>Reduce latency of transactions by moving a round trip from client to server from before reporting success to the user to after reporting success to the user.</li>
+<li>Not to significantly reduce throughput or increase latency of reads or prewrite.</li>
+</ul>
+<h2><a class="header" href="#requirements-and-constraints" id="requirements-and-constraints">Requirements and constraints</a></h2>
+<ul>
+<li>Preserve existing SI, linearizability, and RC properties of transactions.</li>
+<li>TiDB can report success to the user after all prewrites succeed; before sending further messages to TiKV.</li>
+<li>Backwards compatible
+<ul>
+<li>Existing data should still be usable (including transient data such as locks)</li>
+<li>We can assume that all TiKV nodes will be updated before any TiDB nodes (and before async commit is enabled)</li>
+<li>Old and new TiKV nodes may exist in the same cluster</li>
+</ul>
+</li>
+</ul>
+<h2><a class="header" href="#known-issues-and-solutions" id="known-issues-and-solutions">Known issues and solutions</a></h2>
+<p>Please see <a href="design/async-commit/parallel-commit-known-issues-and-solutions.html">this doc</a>.</p>
+<h2><a class="header" href="#implementation-1" id="implementation-1">Implementation</a></h2>
+<h3><a class="header" href="#tidb" id="tidb">TiDB</a></h3>
+<ul>
+<li>The user should opt-in to async commit; we assume the user has opted in for all nodes for the rest of this document.</li>
+<li>Each prewrite response will include a <code>min_commit_ts</code>, TiDB will select the largest <code>min_commit_ts</code> as the final <code>commit_ts</code> for the transaction.</li>
+<li>TiDB can return success to the client before sending the commit message but after receiving success responses for all prewrite messages.</li>
+<li>If an operation fails because it is locked, TiDB must query the primary lock to find a list of secondaries (a <code>CheckTxnStatus</code> request). It will then send a <code>CheckSecondaryLocks</code> request to each region to get all secondary locks and the <code>min_commit_ts</code> in those locks. If all locks in a success state, it can send the commit message as above. If any lock is not present or rolled back, then the transaction should be rolled back.</li>
+</ul>
+<h3><a class="header" href="#tikv" id="tikv">TiKV</a></h3>
+<ul>
+<li>The information stored with each primary key lock should include all keys locked by the transaction and their status.</li>
+<li>When a prewrite is received, lock the keys with a preliminary ts of the start ts. Query PD for a timestamp, this is returned to TiDB as the <code>min_commit_ts</code> and stored in the lock data for the primary key.</li>
+<li>When a read is woken up, ensure we check the commit ts, since we might want the old value (I think we do this anyway).</li>
+<li>Handling a <code>CheckSecondaryLocks</code> message means checking each specified lock, returning <code>min_commit_ts</code> if the lock is in a success state and rolling back the lock if not (including leaving a rollback tombstone).</li>
+</ul>
+<h3><a class="header" href="#protobuf-changes" id="protobuf-changes">Protobuf changes</a></h3>
+<p>See <a href="https://github.com/pingcap/kvproto/pull/637">kvproto/637</a> and <a href="https://github.com/pingcap/kvproto/pull/651">kvproto/651</a>.</p>
+<h2><a class="header" href="#evolution-to-long-term-solution" id="evolution-to-long-term-solution">Evolution to long term solution</a></h2>
+<p>The framework of async commit will be in place at the end of the first iteration. In a later iteration we should improve the temporary locking mechanism, See <a href="design/async-commit/parallel-commit-known-issues-and-solutions.html">parallel-commit-solution-ideas.md</a> for possible improvements.</p>
+<h3><a class="header" href="#open-questions" id="open-questions">Open questions</a></h3>
+<ul>
+<li>There is a problem if the commit_ts calculated during a resolve lock is &gt; pd’s latest ts + 1, that is separate from the problem of non-unique timestamps (but has the same root cause). (<a href="https://github.com/tikv/sig-transaction/issues/21">#21</a>)</li>
+<li>Replica read. (<a href="https://github.com/tikv/sig-transaction/issues/20">#20</a>)</li>
+<li>Interaction with CDC. (<a href="https://github.com/tikv/sig-transaction/issues/19">#19</a>)</li>
+<li>Interaction with binlog. (<a href="https://github.com/tikv/sig-transaction/issues/19">#19</a>)</li>
+<li>Missing schema check in TiDB on commit.</li>
+<li>Interaction with large transactions (there should be no problem, we must ensure that other transactions don't push a async commit transaction's commit_ts).</li>
+<li>Heartbeats for keeping async commit transactions alive.</li>
+</ul>
+<h3><a class="header" href="#refinements" id="refinements">Refinements</a></h3>
+<h4><a class="header" href="#tidb-1" id="tidb-1">TiDB</a></h4>
+<ul>
+<li>TiDB should choose whether or not to use async commit based on the size of the transaction</li>
+</ul>
+<h4><a class="header" href="#tikv-1" id="tikv-1">TiKV</a></h4>
+<ul>
+<li>When using a preliminary lock, try to wake up reader when we have a commit ts.</li>
+<li>Use a memlock rather than writing a preliminary lock</li>
+</ul>
+<p>Refinement 1</p>
+<ul>
+<li>For each node, store a <code>local_ts</code> (aka <code>max_ts</code>), this is the largest ts seen by the node or issued by the node + 1. It could be kept per-region if there is lots of contention, but since it a fairly simple lock-free (but not wait-free) update, I would not expect it to be too bad.
+<ul>
+<li>Note that this is basically a Lamport Clock version of the timestamp, i.e., it is an approximation to PD's current TS.</li>
+</ul>
+</li>
+<li>TiDB fetches a timestamp from PD for all prewrites (<code>min_commit_ts</code>). TiKV compares <code>min_commit_ts</code> to <code>local_ts</code>, if <code>local_ts</code> is greater than <code>min_commit_ts</code>, it must fetch a new timestamp from PD, otherwise it can reuse <code>min_commit_ts</code>.</li>
+</ul>
+<p>Refinement 2</p>
+<ul>
+<li>Use the <code>local_ts</code> as the <code>min_commit_ts</code>.</li>
+<li>Note that this scheme causes duplicate time stamps, and requires one of the proposed solutions.</li>
+</ul>
+<p>Refinement 3</p>
+<ul>
+<li>The user can opt-in to non-linearizability. In that case we use the extended timestamp format described in <a href="design/async-commit/globally-non-unique-timestamps.html#solution-6-extend-the-timestamp-format">parallel-commit-known-issues-and-solutions.md</a>.</li>
+<li>If the user does not opt-in, then use the refinement 1 scheme.</li>
+</ul>
+<h4><a class="header" href="#1pc-1" id="1pc-1">1PC</a></h4>
+<p>If there is just a single prewrite then TiDB can set a flag on the request, then TiKV can just use the <code>min_commit_ts</code> as the <code>commit_ts</code> and commit the transaction without TiDB sending the final commit message (or taking the risk of )</p>
+<h4><a class="header" href="#max_read_ts-approach" id="max_read_ts-approach"><code>max_read_ts</code> approach</a></h4>
+<p>The coarsest granularity is to maintain <code>max_read_ts</code> and <code>min_commit_ts</code> per region.</p>
+<p>The per-range approach:</p>
+<ul>
+<li>For each region, store in memory (note this general mechanism should be abstracted using a trait so it can be easily upgraded to per-key or other form of locking):
+<ul>
+<li>A structure of <code>min_commit_ts</code>s, a map from each in-progress transaction to the minimum ts at which it may be committed.</li>
+<li><code>max_read_ts</code>: the largest <code>start_ts</code> for any transactional read operation for the region (i.e., this value is potentially set on every read).</li>
+<li>When a TiKV node is started up or becomes leader, <code>max_read_ts</code> is initialised from PD with a new timestamp.</li>
+<li>When a prewrite is processed, TiKV records the current <code>max_read_ts + 1</code> as the <code>min_commit_ts</code> for that transaction. <code>min_commit_ts</code> is recorded in each key's lock data structure.</li>
+<li>When a prewrite is finished, its entry is removed from the <code>min_commit_ts</code> structure. If the prewrite is successful, the <code>min_commit_ts</code> is returned to TiDB in the response.</li>
+<li>When a read is processed, first it sets the <code>max_read_ts</code>, then it checks its <code>start_ts</code> against the smallest <code>min_commit_ts</code> of any current transaction in the read range. It will block until its <code>start_ts &gt;= min(min_commit_ts)</code></li>
+</ul>
+</li>
+<li>Use <code>Mutex&lt;Timestamp&gt;</code> for <code>max_read_ts</code></li>
+</ul>
+<p>Further refinement:</p>
+<ul>
+<li>Per-key, rather than per-region, <code>min_commit_ts</code> and <code>max_read_ts</code></li>
+<li>Lock-free <code>max_read_ts</code> rather than using a mutex.</li>
+</ul>
+<h5><a class="header" href="#handling-non-unique-timestamps" id="handling-non-unique-timestamps">Handling non-unique timestamps</a></h5>
+<p>See <a href="design/async-commit/globally-non-unique-timestamps.html">parallel-commit-known-issues-and-solutions.md</a> for discussion.</p>
+<p>There is a possibility of two transactions having the same commit_ts, or of one transaction’s start_ts to be equal to the other’s commit_ts. We believe conflicts in the write CF between two commits are not possible. However, if one transaction's <code>start_ts</code> is another's <code>commit_ts</code> then rolling back the first transaction would collide with committing the second. We believe this isn't too serious an issue, but we will need to find a backwards compatible change to the write CF format. We do not know if there are problems due to non-unique timestamps besides the conflict in write CF.</p>
+<h2><a class="header" href="#testing" id="testing">Testing</a></h2>
+<h2><a class="header" href="#staffing" id="staffing">Staffing</a></h2>
+<p>The following people are available for work on this project (as of 2020-06-15):</p>
+<ul>
+<li>Zhenjing (@MyonKeminta): minimal time until CDC project is complete</li>
+<li>Zhaolei (@youjiali1995): review + minimal time</li>
+<li>Nick (@nrc): approximately full time</li>
+<li>Yilin (@sticnarf): approximately 1/2 time</li>
+<li>Fangsong (@longfangsong): approximately full time after apx one month (although work to be finalised)</li>
+<li>Rui Xu (@cfzjywxk): apx 1/3 initially</li>
+</ul>
+<p>RACI roles:</p>
+<ul>
+<li>Responsible:
+<ul>
+<li>Nick</li>
+<li>Rui Xu</li>
+<li>Yilin</li>
+</ul>
+</li>
+<li>Accountable: Rui Xu</li>
+<li>Consulted:
+<ul>
+<li>Zhenjing</li>
+<li>Zhaolei</li>
+</ul>
+</li>
+<li>Informed:
+<ul>
+<li>Liu Wei</li>
+<li>Liqi</li>
+<li>Evan Zhou</li>
+<li>#sig-transaction</li>
+<li>this month in TiKV</li>
+</ul>
+</li>
+</ul>
+<h1><a class="header" href="#allow-commit_ts-to-be-non-globally-unique" id="allow-commit_ts-to-be-non-globally-unique">Allow commit_ts to be non-globally unique.</a></h1>
+<p>This document is about the problem and the solution of the non-globally-unique <code>commit_ts</code> problem.</p>
+<h2><a class="header" href="#the-problem" id="the-problem">The problem</a></h2>
+<p>In TiKV, rolling back a transaction need to leave a rollback record in order to guarantee consistency. But rollback records and commit records are both saved in Write CF, and the commit records are saved with <code>{user_key}{commit_ts}</code> <sup><a href="design/async-commit/globally-non-unique-timestamps.html#footnote-star">[*]</a></sup> as the internal key, while that of rollback records are <code>{user_key}{start_ts}</code>. Previously the <code>commit_ts</code>es are timestamps allocated from PD, which is guaranteed globally unique. However when we try to use a calculated timestamp as the <code>commit_ts</code> to avoid the latency of PD's RPC, it's possible that a rollback record gets the same internal key as a commit record, but we need to keep them both.</p>
+<h2><a class="header" href="#the-solution" id="the-solution">The solution</a></h2>
+<p>The solution is to keep the commit record, but with a <code>has_overlapped_rollback</code> flag in this case to indicate that there's a rollback happened here whose <code>start_ts</code> equals to the current record's <code>commit_ts</code>. But only &quot;protected&quot; rollbacks need to set the flag. Non-protected rollback records can be dropped without introducing potential inconsistency.</p>
+<p>The solution contains two parts: 1) avoiding rollback operations overwriting commit records, and 2) avoiding commit operation overwriting rollback records.</p>
+<h3><a class="header" href="#avoiding-rollback-operations-overwriting-commit-records" id="avoiding-rollback-operations-overwriting-commit-records">Avoiding rollback operations overwriting commit records</a></h3>
+<p>To do this, when performing a protected rollback operation, check the records in write CF to see if there's already a commit record of another transaction. If so, instead of writing the rollback record, add the <code>has_overlapped_rollback</code> flag to that commit record. For example:</p>
+<ol>
+<li>Transaction <code>T1</code> (<code>start_ts = 5</code> and <code>commit_ts = 10</code>) commits on key <code>K</code>.</li>
+<li>Transaction <code>T2</code> (<code>start_ts = 10</code>) rollbacks on key <code>K</code>.</li>
+</ol>
+<p>At this time, its rollback record and <code>T1</code>'s commit record will have the same internal key <code>K_10</code> <sup><a href="design/async-commit/globally-non-unique-timestamps.html#footnote-star">[*]</a></sup>. Thus if <code>T2</code> continue writing the rollback records, <code>T1</code>'s commit record will be overwritten. Instead, if we keep <code>T1</code> commit record but add a <code>has_overlapped_rollback</code> flag to it, then both <code>T1</code>'s commit information and <code>T2</code>'s rollback information can be kept.</p>
+<h3><a class="header" href="#avoiding-commit-operations-overwriting-rollback-records" id="avoiding-commit-operations-overwriting-rollback-records">Avoiding commit operations overwriting rollback records</a></h3>
+<p>It's also possible that when committing a transaction, there's already another transaction's rollback record that might be overwritten, which is not expected. An easy approach to solve this is to check whether there's a overlapping rollback record already here. But before async commit is introduced, commit operations didn't need to read Write CF, so introducing this check may significantly harm the performance. Our final solution to this case is that:</p>
+<ol>
+<li>Considering a single key, if transaction <code>T1</code>'s rollback operation happens before transaction <code>T2</code>'s prewriting, <code>T1</code> can push the <code>max_read_ts</code> which can be seen by <code>T2</code>, so <code>T2</code>'s <code>commit_ts</code> can be guaranteed to be greater than <code>T1</code>'s <code>start_ts</code>. Therefore <code>T2</code> won't overwrite <code>T1</code>'s rollback record.</li>
+<li>Considering a single key, if transaction <code>T1</code>'s rollback operation happens between <code>T2</code>'s prewriting and committing, the rollback will have no chance to affect <code>T2</code>'s <code>commit_ts</code>. In this case, <code>T1</code> can save its timestamp to <code>T2</code>'s lock. So when <code>T2</code> is committing, it can get the information of the rollback operation from the lock. If one of the recorded rollback timestamps in the lock equals to <code>T2</code>'s <code>commit_ts</code>, the <code>has_overlapped_rollback</code> flag will be set. Of course, if the <code>T1</code> finds that the lock's <code>start_ts</code> or <code>min_commit_ts</code> is greater than <code>T1</code>'s start_ts, or any other reason that implies that <code>T2</code>'s <code>commit_ts</code> is impossible to be the same as <code>T1</code>'s start_ts, then <code>T1</code> doesn't need to add the timestamp to the lock.</li>
+</ol>
+<h2><a class="header" href="#the-old-discussion-document" id="the-old-discussion-document">The old discussion document</a></h2>
+<details>
+<summary>Here is an old document that discusses about different solutions to this problem.</summary>
+<p>This is a machine translation of a <a href="https://docs.google.com/document/d/1ofa9zYdb0-UmFu-uDHDLft2-G4s2SI2TJRErNRDH7O0/edit#">Chinese document</a> by @MyonKeminta.</p>
+<h1><a class="header" href="#allow-commit_ts-to-be-non-globally-unique-1" id="allow-commit_ts-to-be-non-globally-unique-1">Allow commit_ts to be non-globally unique.</a></h1>
+<h2><a class="header" href="#background" id="background">background</a></h2>
+<p>In our current implementation, both the start_ts and commit_ts of a transaction come from the PD and the big transactions we are currently doing and the single Region transactions we will continue to do. Both 1PC and Parallel Commit will cause commit_ts to be no longer global The only. Thus, in order to continue the work described above, many of the corner cases that we once did not need to deal with now need to have their behavior harmonized. Any case not covered by the test needs to be covered.
+(None of the above optimizations will result in start_ts and commit_ts being equal for the same transaction)</p>
+<h2><a class="header" href="#behavior-while-reading-and-writing" id="behavior-while-reading-and-writing">Behavior while reading and writing</a></h2>
+<h3><a class="header" href="#read" id="read">read</a></h3>
+<p>It's the question of whether a commit record is visible to a transaction with start_ts = T when it reads a commit record with commit_ts = T.
+Here you can define T as start_ts/for_update_ts &gt; T as commit_ts, i.e. the data for commit_ts = T is visible to the transaction for which start_ts = T.</p>
+<h3><a class="header" href="#write-1" id="write-1">write</a></h3>
+<p>Also under the definition of T as start_ts &gt; T as commit_ts, a The write transaction for start_ts = T encounters a commit record for commit_ts for T ( The lock can be successfully applied when (not Rollback). Because its commit_ts must be greater than start_ts, it can be compared to the commit record of the previous transaction. Coexistence. However, if you encounter a write record with the same timestamp that is not a transaction commit, but a Rollback record, then this write should fail.</p>
+<p>In fact it would be simpler to simply disallow the locking in the above case, just as the current logic is, without change. The only advantage of the above is that it reduces some WriteConflict.</p>
+<p>(Note: Now on a pessimistic lock, if the commit_ts of the existing commit record are the same as the current for_update_ts, then it is allowed to lock successfully)</p>
+<h3><a class="header" href="#commit-commit-conflict" id="commit-commit-conflict">commit-commit conflict</a></h3>
+<p>It is possible two transactions have the same <code>commit_ts</code>. It's easy to imagine one transaction gets a <code>commit_ts</code> as <code>max(max_read_ts) + 1</code> and another gets that timestamp from PD. This is fine as long as the two transactions don't meet. If the two transactions try to write the same key, then there would be two competing values for any reads after that <code>commit_ts</code> (TiKV could not write both values into the write CF, but this is a technicality, the more fundamental problem is that there is no way for TiKV to judge which value is most recent). However, due to locking this cannot occur (depending on how the non-unique timestamps occur, it also might not be possible to create such a situation).</p>
+<h2><a class="header" href="#problems-with-write-cfs-rollback-logs" id="problems-with-write-cfs-rollback-logs">Problems with Write CF's Rollback logs</a></h2>
+<p>The format of the Write CF key is {encoded_key}{commit_ts }, but it's different for Rollback-type records: a Rollback dropped transaction has no commit_ts, which has start_ts appended to the end of its key, so there could be something like this Phenomena.</p>
+<ul>
+<li>Transaction 1: start_ts = 10, commit_ts = 11</li>
+<li>Transaction 2: start_ts = 11, Rollback</li>
+</ul>
+<p>In this case, transaction 2 may overwrite transaction 1's commit record when Write CF writes the rollback record, resulting in the loss of the data committed by transaction 1.</p>
+<h3><a class="header" href="#solution-1-write-priority" id="solution-1-write-priority">Solution 1: Write Priority</a></h3>
+<p>At TiKV's transaction level, before writing a rollback, it is checked whether there is already another commit record equivalent to ts and if so, no more rollbacks are written; writing other commit records is allowed to overwrite the rollback record.</p>
+<p>Disadvantages:</p>
+<ul>
+<li>Rollback requires an additional read operation, potentially causing a performance regression.</li>
+<li>Unable to block requests for pessimistic transactions that arrive late. This situation, once it arises on the primary key of a pessimistic transaction, may cause the pessimistic transaction to be correct. Impact. I think this can be addressed by treating a write with the same commit ts but different start ts as a rollback.</li>
+</ul>
+<h3><a class="header" href="#solution-2-rollback-cf" id="solution-2-rollback-cf">Solution 2: Rollback CF</a></h3>
+<p>Separate the Rollback into a new CF. The downside is that the amount of work involved in such a change can be very high and compatibility issues need to be properly addressed. Also, this solution can help with another problem: https://docs.google.com/document/d/1suX8QQjI_eWc1PxI52vFWBBM9ajkRQxGNbAr_svypRo/edit?ts=5d91a36a#</p>
+<p>This programme is being prepared for implementation. Related documents: https://docs.google.com/document/d/1SB4M19Xkv6zpZN4cbX6QlHJPtlB66VOJXuzL0ewx94w/edit#</p>
+<h3><a class="header" href="#solution-3-rollback-flag" id="solution-3-rollback-flag">Solution 3: Rollback Flag</a></h3>
+<p>When a Rollback is found to collide with another Write record, the Rollback is treated as a A flag bit is added to the Write record with which the collision occurs, causing the Rollback information to collide with the transaction commit. Records coexist. As with Scenario 1, there is additional overhead and it is not very elegant to implement, but it solves a problem that has an impact on pessimistic matters. Question.</p>
+<h3><a class="header" href="#solution-4-staggered-ts" id="solution-4-staggered-ts">Solution 4: Staggered ts</a></h3>
+<p>Modify the ts assignment logic so that start_ts is all odd commit_ts is all even. The downside is that it is too ungainly.</p>
+<p>The current preference is for the Rollback CF solution, as this would incidentally solve a number of other problems:</p>
+<ul>
+<li>Problems with Rollback records and Lock records affecting query performance (if Lock-type Write records are also placed in the new CF).</li>
+<li>collapse rollback Issues that affect the validity of pessimistic matters in extreme cases.</li>
+<li>It's also part of the job to split write cf for latest and history.</li>
+</ul>
+<h3><a class="header" href="#solution-5-max_ts" id="solution-5-max_ts">Solution 5: max_ts</a></h3>
+<p>Rather than maintaining <code>max_read_ts</code>, we maintain <code>max_ts</code> which is updated with every timestamp the TiKV node sees (i.e., every prewrite's <code>start_ts</code> and updated with every <code>commit_ts</code> when a transaction is committed).</p>
+<h3><a class="header" href="#solution-6-extend-the-timestamp-format" id="solution-6-extend-the-timestamp-format">Solution 6: Extend the timestamp format</a></h3>
+<p>New timestamps are 128 bits. The first 64 are a local timestamp, the remaining 64 contain a specification version number for forward compatibility and a node identifier to identify the node that generated the timestamp. PD has the unique node id <code>0</code>. Old timestamps are considered equivalent to a new timestamp with <code>0</code> node id.</p>
+<p>Each node maintains a local timestamp counter in the manner of a Lamport Clock. This value is sent to other nodes including PD with every message (or most messages). The ordering of the local timestamp only has the property that if event <code>a</code> observably precedes event <code>b</code>, then <code>ts(a) &lt; ts(b)</code>. However, local timestamps are not globally unique and the inverse of the previous property is not true. Two timestamps with the same node id do provide the inverse property and all timestamps with the same node id gives a linear total order.</p>
+<p>The entire timestamp is globally unique and gives a total ordering over timestamps. However, it is not linear in that it does not strictly match the ordering due to real time.</p>
+<p>This solution easily solves the issue of write and rollback entries in the write CF. It also improves efficiency since to get a new timestamp, a node does not need to send a message to PD, it can use its local 'clock'.</p>
+<p>However, it means we lose strict linearizability because the order of writes may not exactly match their real time ordering.</p>
+<p>This solution is amenable to configuration, since if the node id is always 0, then we have the same properties as we do currently.</p>
+<p>TODO - how does this interact with tools which require unique timestamps?</p>
+</details>
+<hr />
+<p><sup id="footnote-star">[*]: It's not the accurate format of the key, but just representing that the key is composed by the user key and the timestamp.</sup></p>
+<h1><a class="header" href="#compatibility-between-async-commit-and-replica-read" id="compatibility-between-async-commit-and-replica-read">Compatibility between async commit and replica read</a></h1>
+<p><sub>This document was originally written for TiFlash developers</sub></p>
+<h2><a class="header" href="#what-is-async-commit" id="what-is-async-commit">What is async commit?</a></h2>
+<p>It’s an optimization to the original 2PC.</p>
+<p>Success of a transaction is returned to the user as soon as the first phase (aka the prewrite phase in Percolator) finishes successfully. The second phase (the commit phase) is done asynchronously. So the latency is reduced.</p>
+<h2><a class="header" href="#what-is-the-most-important-change" id="what-is-the-most-important-change">What is the most important change?</a></h2>
+<p>The commit timestamp may be calculated by TiKV. Every read should update the <code>max read TS</code> on TiKV with its snapshot TS. On prewrite, <code>min commit TS</code> is set to at least <code>max read TS + 1</code>. Then, we can make sure the commit TS of the transaction will be larger than the snapshot TS of any previous reader. In other words, we can guarantee snapshot isolation.</p>
+<h2><a class="header" href="#what-is-the-problem-for-replica-read" id="what-is-the-problem-for-replica-read">What is the problem for “replica read”?</a></h2>
+<p>Replica read does not update the <code>max read TS</code>.</p>
+<p>There is a time gap between setting the “min commit TS” in the lock and the lock being applied to the raft store. These unapplied locks are saved in memory temporarily. So readers must see these in-memory locks which only exist on the leader.</p>
+<h2><a class="header" href="#what-is-the-solution" id="what-is-the-solution">What is the solution?</a></h2>
+<p>Protocol change: https://github.com/pingcap/kvproto/pull/665</p>
+<p>Two extra fields are added to the ReadIndex RPC request:</p>
+<ul>
+<li><code>start_ts</code> is the snapshot TS of the replica read. It updates the <code>max read TS</code> on the TiKV of the leader.</li>
+<li><code>ranges</code> are the key ranges to read. TiKV will check if there are memory locks in the given ranges which should block the read. If any of such locks are found, it is returned as the <code>locked</code> field in the response.
+TiFlash already uses the ReadIndex RPC for replica read. TiKV can use the similar way for replica read because it is not so easy to support it through the raft layer from the engineering perspective.</li>
+</ul>
+<p>More design documents about async commit: https://github.com/tikv/sig-transaction/tree/master/design/async-commit</p>
+<h1><a class="header" href="#parallel-commit-known-issues-and-solutions" id="parallel-commit-known-issues-and-solutions">Parallel Commit Known Issues and Solutions</a></h1>
+<p>We have many difficulties to overcome in order to implement Parallel Commit. This document includes ideas to solve them.</p>
+<h2><a class="header" href="#one-phase-writing-locking-problem" id="one-phase-writing-locking-problem">One-phase Writing Locking Problem</a></h2>
+<p>In a Parallel-Commit transaction, once all prewrites is succeeded, we say the transaction is successfully committed. The commit_ts of a transaction <code>T</code> should be greater than all reads on <code>T</code>'s keys that happens before <code>T</code>'s prewrite operations, and less than transactions that starts after <code>T</code> committing.</p>
+<p>We cannot asynchronously allocate a TSO as transaction <code>T</code>'s commit_ts after telling the client that the transaction has been finished, because it's possible that the client runs faster and got a earlier TSO to start its next transaction <code>T2</code>, so that in <code>T2</code>'s sight the previous transaction <code>T</code> didn't commit.</p>
+<p>Neither can we tell the client <code>T</code> has been committed just after allocating TSO as <code>T</code>'s commit_ts. Because if server crashes it will never know what TS it has allocated, and it can not find the proper commit_ts anymore.</p>
+<p>Actually, we believe we should persist some information that helps us in finding the commit_ts, and it should have been persisted when the transaction has been &quot;successfully committed&quot;. Our current idea is persist <code>max_read_ts</code> into the lock that we prewrites, and the final commit_ts will be <code>max_over_all_keys{max_read_ts, start_ts, _for_update_ts}+1</code>. However it's hard: we need to get the current value of <code>max_read_ts</code> before writing down the locks, however new reads may happens between getting <code>max_read_ts</code> and successfully writing down the lock.</p>
+<p>We may have no perfect solution to this problem, but we have came up with some ideas that may be possible to solve it. We have a basic idea that we need to block reads with larger ts between getting <code>max_read_ts</code> and finishing writing it down. Basically, we maintain a <code>max_read_ts</code> and a memory-lock-like structure for each region  (more clearly, each leader region on the current TiKV). When a region's leader or epoch changed, the new leader should re-initialize the <code>max_read_ts</code> and the memory-lock-like structure. The <code>max_read_ts</code> should be initialized from a newest TSO and <strong>it's recorded <code>max_read_ts</code> is not valid until before getting the TSO</strong>.</p>
+<p>We have some different ideas for the memory-lock-like structure. They can all be abstracted like:</p>
+<pre><pre class="playground"><code class="language-rust edition2018">
+<span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>trait MemLock: Send + Sync {
+    // Returns max_read_ts which is fetched after acquiring lock.
+    fn lock_for_write(&amp;self, keys: &amp;[Key], start_ts: TimeStamp, ...) -&gt; Result&lt;TimeStamp&gt;;
+    fn unlock_for_write(&amp;self, keys: &amp;[Key], start_ts: TimeStamp, ...);
+    // Update max_read_ts and then check if the keys/ranges is locked
+    fn check_lock_for_read(&amp;self, keys: &amp;[Key], start_ts: TimeStamp, ...) -&gt; ...;
+    fn check_lock_for_scan(&amp;self, start_key: &amp;Key, end_key: &amp;Key, start_ts: TimeStamp, ...) -&gt; ...;
+}
+<span class="boring">}
+</span></code></pre></pre>
+<h3><a class="header" href="#idea-1-key-based-memory-lock" id="idea-1-key-based-memory-lock">Idea 1: Key-Based Memory Lock</a></h3>
+<p>When we got the max read ts as <code>M</code> and then prewriting key <code>K</code> with max read ts <code>M</code>, we want to prevent other transactions from reading <code>K</code> with a ts larger than <code>M</code>. The most straightforward way is to make a in-memory lock: A Parallel-Commit prewrite should lock the keys it want to write, before reading the <code>max_read_ts</code>, and release the lock after finishing prewrite. A read operation should check the memory lock after updating <code>max_read_ts</code> and should be blocked (or return a KeyIsLocked error) when it meets the memory lock. Read operations don't need to actually acquire locks. It can proceed reading if it finds that the keys it wants to read are not locked.</p>
+<p>The memory lock should support range-based queries, because a reading operation may need to scan a range. So the memory lock should be implemented by an ordered map (like BTreeMap, Trie, SkipList).</p>
+<p>Therefore, the major difficulty of memory lock solution is that how to keep the performance.</p>
+<h3><a class="header" href="#idea-2-rocksdb-based-lock-by-gengliqi" id="idea-2-rocksdb-based-lock-by-gengliqi">Idea 2: RocksDB-Based Lock (By @gengliqi)</a></h3>
+<p>This idea differs from <a href="design/async-commit/parallel-commit-known-issues-and-solutions.html#idea-1-key-based-memory-lock">Idea1</a>, only in that we are using RocksDB instead of an in-memory data structure to store locks. We avoid most performance impact if we can put it directly to LOCK_CF without Raft replication, however, it might introduce too many corner cases and troubles to resolve, considering that there are leader changing and region scheduling in TiKV. Therefore we may add a new CF to store these kind of locks. The performance comparing to <a href="design/async-commit/parallel-commit-known-issues-and-solutions.html#idea-1-key-based-memory-lock">Idea1</a> is uncertain before we actually do a POC test.</p>
+<h3><a class="header" href="#idea-3-transaction-list-by-little-wallace" id="idea-3-transaction-list-by-little-wallace">Idea 3: Transaction List (By @Little-Wallace)</a></h3>
+<p>For prewrite operations that need to exclude readings, add add them to a vector <code>V</code>. The <code>max_read_ts</code> should be acquired after the prewrite operation locks the latch of scheduler and adding itself to <code>V</code>.</p>
+<p>For point-get operations, access latch to see if the key is being prewritten with a smaller ts (prewrites of Parallel Commit transactions need to add its special information to the latch slot when it acquires the latch). If so, block or return KeyIsLocked err. For range scanning operations, check each items in <code>V</code> to see if their range overlaps. If so, block or return KeyIsLocked err.</p>
+<h3><a class="header" href="#idea-4-optimized-key-based-memory-lock-by-little-wallace" id="idea-4-optimized-key-based-memory-lock-by-little-wallace">Idea 4: Optimized Key-Based Memory Lock (By @Little-Wallace)</a></h3>
+<p>The memlock consists of a lock-free ordered map like Idea 1 (for scanning request to check locks in range) and the latch of transaction scheduler like Idea 3 (for point getting requests).</p>
+<p>A prewrite of Parallel Commit transaction can get the <code>max_read_ts</code> first and then save the <code>max_read_ts</code> to the locks (both in the ordered map part and the latch) so that when a read operation checks locks, it can ignore the locks with <code>max_read_ts</code> greater than the current <code>read_ts</code>. However since this design is lock-free, it introduced another chance of breaking the isolation: a read may check lock between a prewrite getting <code>max_read_ts</code> and setting the memory lock. But this is quite easy to solve: let prewrite operation get another <code>max_read_ts</code> after locking the memlock. Thus the full procedure of prewrite looks like this:</p>
+<ol>
+<li>Atomically get the <code>max_read_ts</code> as <code>T1</code>.</li>
+<li>Lock the memlock and acquire latches, saving <code>T1</code> to them.</li>
+<li>Atomically get the <code>max_read_ts</code> again as <code>T2</code>.</li>
+<li>Continue performing prewrite and persist <code>T2</code> to the locks written down to engine.</li>
+</ol>
+<h3><a class="header" href="#idea-5-push-start_ts-of-readers" id="idea-5-push-start_ts-of-readers">Idea 5: Push start_ts of readers</a></h3>
+<p>(nrc's understanding of CRDB solution).</p>
+<p>TODO</p>
+<h2><a class="header" href="#replica-read-by-gengliqi" id="replica-read-by-gengliqi">Replica Read (By @gengliqi)</a></h2>
+<p>In the solutions to the locking problem, writing are performed on leaders, and it needs to know the <code>max_read_ts</code>. However if follower read is enabled, the leader need to know the <code>max_read_ts</code> among all replicas of the Region by some way, and reading on followers should be blocked when the leader has an ongoing conflicting prewrite. Here is one possible solution to this problem.</p>
+<p>The main idea is to adjust the lock's <code>max_read_ts</code> in Raft layer. It might be hard to avoid Raftstore coupling with transaction logic though.</p>
+<p>First, readings on followers should send the read ts via the ReadIndex message to the leader, and the leader records it. When a prewrite of a Parallel-Commit transaction is being proposed in Raft layer, it's <code>max_read_ts</code> field should be updated if it's smaller than the <code>max_read_ts</code> that was recorded in Raft layer. This makes it possible to write down the <code>max_read_ts</code> among all replicas.</p>
+<p>However this doesn't apply to the case that a ReadIndex arrives between a prewrite's proposal and committing. We can't edit <code>max_read_ts</code> from the raft log since it has been proposed, and we cannot immediately allow the follower to read before the log being applied. So secondly, we need a additional mechanism to prevent the follower from reading without the lock. </p>
+<p>In the current implementation (where Parallel Commit is not supported), ReadIndex returns the leader's commit index, and the follower can read only when its apply index &gt;= leader's commit index. </p>
+<p>One way to solve this problem, is to let the leader returns <code>pc_index</code> after this <code>pc_index</code> log is committed if <code>pc_index</code> is greater than the commit index. <code>pc_index</code> indicates the index of proposed prewrite of Parallel-Commit transactions. This is easy to implement, but increases the latency of follower read, since the follower needs to wait for applying more logs before it's permitted to read. </p>
+<p>Another approach is to let the leader returns both <code>commit_index</code> and <code>pc_index</code> for ReadIndex, and the follower needs to construct a in-memory lock for received-but-not-yet-committed prewrites, and reads are permitted when the leader's <code>commit_index</code> is applied and, additionally, all logs before <code>pc_index</code> has been received. Then the read should be blocked if it tries to read keys that has been locked by the in-memory lock we just mentioned. Note that Raft learners also need to do this. If we choose this approach, TiFlash might be exclusive with async commit before we support this mechanism on it.</p>
+<p>Another solution is ReadIndex carries read_ts and key range and treat it as normal read operations.</p>
+<h2><a class="header" href="#non-globally-unique-committs" id="non-globally-unique-committs">Non-Globally-Unique CommitTS</a></h2>
+<p>Currently in write CF, we use <code>encode(user_key)+commit_ts</code> as the key to write in RocksDB. When a key is rolled back, it doesn't has a commit_ts, so its commit_ts will be simply set to start_ts. This is ok as long as the commit_ts is a globally-unique timestamp like start_ts of transactions. However, things are different when we start to calculate commit_ts rather than using a TSO as the commit_ts. The keys of rollbacks and commits in write CF may collide, but usually we need to keep both.</p>
+<p>We have multiple ways to solve the problem (See <a href="design/async-commit/globally-non-unique-timestamps.html">globally-non-unique-timestamps.md</a>). Currently our preferred solution is the Solution 3 in that document: adding Rollback flag to Write records. When a Commit record and a Rollback record collides, we write the Commit record with a <code>has_rollback</code> flag to mark there is an overwritten rollback.</p>
+<p>The drawback is that in this way CDC will be affected. We need to distinguish the two cases:</p>
+<ul>
+<li>Rollback flag is appended to a existed commit record</li>
+<li>Commit Record replaced a Rollback record and sets Rollback flag of itself.</li>
+</ul>
+<p>So that CDC module can know whether it need to perform a Commit action or a Rollback action.</p>
+<h2><a class="header" href="#affects-to-cdc" id="affects-to-cdc">Affects to CDC</a></h2>
+<p>Implementing Parallel Commit will introduce some affects to CDC.</p>
+<h3><a class="header" href="#committs-issue" id="committs-issue">CommitTS issue</a></h3>
+<p>As we mentioned in the last section, implementing Rollback Flag to enable non-globally-unique CommitTS will affect CDC. We've discussed in the last section so we don't repeat here.</p>
+<h3><a class="header" href="#restrictions-between-max_read_ts-and-resolved_ts" id="restrictions-between-max_read_ts-and-resolved_ts">Restrictions between <code>max_read_ts</code> and <code>resolved_ts</code></a></h3>
+<p>When calculating <code>max_read_ts</code>, the <code>resolved_ts</code> of CDC must be also considered. Also, ongoing prewrites should block <code>resolved_ts</code> from advancing. The design to achieve this may be not easy, since CDC is a side module in TiKV that references main module of TiKV, rather than TiKV referencing CDC module.</p>
+<p><strong>TODO: This issue is still to be discussed.</strong></p>
+<h2><a class="header" href="#affects-to-tidb-binlog" id="affects-to-tidb-binlog">Affects to tidb-binlog</a></h2>
+<p>Since we must support calculating CommitTS to implement Parallel Commit, which seems to be totally not capable for tidb-binlog to support. If one want to use tidb-binlog, the only way is to disable Parallel Commit (and other optimizations that needs CommitTS calculation we do in the future), otherwise consider use CDC instead of tidb-binlog.</p>
+<h2><a class="header" href="#affects-to-backup--restore" id="affects-to-backup--restore">Affects to backup &amp; restore</a></h2>
+<p>If the maximum commit ts in the existing backup is <code>T</code>. An incremental backup dumps data with commit ts in (<code>T</code>, +inf).</p>
+<p>It is possible that a transaction commits with <code>T</code> after the previous backup. But the next incremental backup skips it.</p>
+<p>Note: If we are using <code>max_read_ts + 1</code> to commit instead of <code>max_ts + 1</code>, it's even possible that the commit ts is small than <code>T</code>, which is more troublesome.</p>
+<h2><a class="header" href="#schema-version-checking" id="schema-version-checking">Schema Version Checking</a></h2>
+<p>The existing 2pc process checks the schema version before issue the final commit command, if we do async commit, we don't have a chance to check the schema version. If it has changed, we may break the index/row consistency.</p>
+<p><strong>TODO: This issue is still to be discussed.</strong></p>
+
+                    </main>
+
+                    <nav class="nav-wrapper" aria-label="Page navigation">
+                        <!-- Mobile navigation buttons -->
+                        
+
+                        
+
+                        <div style="clear: both"></div>
+                    </nav>
+                </div>
+            </div>
+
+            <nav class="nav-wide-wrapper" aria-label="Page navigation">
+                
+
+                
+            </nav>
+
+        </div>
+
+        
+
+        
+
+        
+
+        
+        <script type="text/javascript">
+            window.playground_copyable = true;
+        </script>
+        
+
+        
+
+        
+        <script src="elasticlunr.min.js" type="text/javascript" charset="utf-8"></script>
+        <script src="mark.min.js" type="text/javascript" charset="utf-8"></script>
+        <script src="searcher.js" type="text/javascript" charset="utf-8"></script>
+        
+
+        <script src="clipboard.min.js" type="text/javascript" charset="utf-8"></script>
+        <script src="highlight.js" type="text/javascript" charset="utf-8"></script>
+        <script src="book.js" type="text/javascript" charset="utf-8"></script>
+
+        <!-- Custom JS scripts -->
+        
+
+        
+        
+        <script type="text/javascript">
+        window.addEventListener('load', function() {
+            window.setTimeout(window.print, 100);
+        });
+        </script>
+        
+        
+
+    </body>
+</html>

@@ -1,0 +1,187 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="406px" height="372px" viewBox="0 0 406 372" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+    <title>architecture 2</title>
+    <defs>
+        <polygon id="path-1" points="0 0 404 0 404 370 0 370"></polygon>
+        <polygon id="path-3" points="0 0 404 0 404 370 0 370"></polygon>
+        <polygon id="path-5" points="0 0 404 0 404 370 0 370"></polygon>
+        <polygon id="path-7" points="0 0 404 0 404 370 0 370"></polygon>
+        <polygon id="path-9" points="0 0 404 0 404 370 0 370"></polygon>
+        <polygon id="path-11" points="0 0 404 0 404 370 0 370"></polygon>
+        <polygon id="path-13" points="0 0 404 0 404 370 0 370"></polygon>
+        <polygon id="path-15" points="0 0 404 0 404 370 0 370"></polygon>
+        <polygon id="path-17" points="0 0 404 0 404 370 0 370"></polygon>
+        <polygon id="path-19" points="0 0 404 0 404 370 0 370"></polygon>
+        <polygon id="path-21" points="0 0 404 0 404 370 0 370"></polygon>
+        <polygon id="path-23" points="0 0 404 0 404 370 0 370"></polygon>
+        <polygon id="path-25" points="0 0 404 0 404 370 0 370"></polygon>
+        <polygon id="path-27" points="0 0 404 0 404 370 0 370"></polygon>
+        <polygon id="path-29" points="0 0 404 0 404 370 0 370"></polygon>
+        <polygon id="path-31" points="0 0 404 0 404 370 0 370"></polygon>
+        <polygon id="path-33" points="0 0 404 0 404 370 0 370"></polygon>
+        <polygon id="path-35" points="0 0 404 0 404 370 0 370"></polygon>
+        <polygon id="path-37" points="0 0 404 0 404 370 0 370"></polygon>
+        <polygon id="path-39" points="0 0 404 0 404 370 0 370"></polygon>
+        <polygon id="path-41" points="0 0 404 0 404 370 0 370"></polygon>
+    </defs>
+    <g id="页面-1" stroke="none" stroke-width="1" fill="none" fill-rule="evenodd">
+        <g id="architecture" transform="translate(1.000000, 1.000000)">
+            <g id="Clipped" stroke-linecap="square">
+                <mask id="mask-2" fill="white">
+                    <use xlink:href="#path-1"></use>
+                </mask>
+                <g id="路径"></g>
+                <rect id="矩形" fill="#FFFFFF" fill-rule="nonzero" mask="url(#mask-2)" x="0" y="0" width="404" height="370"></rect>
+            </g>
+            <g id="Clipped" stroke-linecap="square">
+                <mask id="mask-4" fill="white">
+                    <use xlink:href="#path-3"></use>
+                </mask>
+                <g id="路径"></g>
+                <rect id="矩形" fill="#D2E2F0" fill-rule="nonzero" mask="url(#mask-4)" x="106.5" y="15" width="250" height="40"></rect>
+            </g>
+            <g id="Clipped">
+                <mask id="mask-6" fill="white">
+                    <use xlink:href="#path-5"></use>
+                </mask>
+                <g id="路径"></g>
+                <rect id="矩形" stroke="#000000" mask="url(#mask-6)" x="106.5" y="15" width="250" height="40"></rect>
+            </g>
+            <g id="Clipped">
+                <mask id="mask-8" fill="white">
+                    <use xlink:href="#path-7"></use>
+                </mask>
+                <g id="路径"></g>
+                <text id="Client" fill="#000000" fill-rule="nonzero" mask="url(#mask-8)" font-family="Helvetica" font-size="12" font-weight="normal">
+                    <tspan x="214.5693" y="39.5352">Client</tspan>
+                </text>
+            </g>
+            <g id="Clipped" stroke-linecap="square">
+                <mask id="mask-10" fill="white">
+                    <use xlink:href="#path-9"></use>
+                </mask>
+                <g id="路径"></g>
+                <rect id="矩形" fill="#D2E2F0" fill-rule="nonzero" mask="url(#mask-10)" x="106.5" y="135" width="250" height="40"></rect>
+            </g>
+            <g id="Clipped">
+                <mask id="mask-12" fill="white">
+                    <use xlink:href="#path-11"></use>
+                </mask>
+                <g id="路径"></g>
+                <rect id="矩形" stroke="#000000" mask="url(#mask-12)" x="106.5" y="135" width="250" height="40"></rect>
+            </g>
+            <g id="Clipped">
+                <mask id="mask-14" fill="white">
+                    <use xlink:href="#path-13"></use>
+                </mask>
+                <g id="路径"></g>
+                <text id="Transaction" fill="#000000" fill-rule="nonzero" mask="url(#mask-14)" font-family="Helvetica" font-size="12" font-weight="normal">
+                    <tspan x="197.3809" y="159.5352">Transaction</tspan>
+                </text>
+            </g>
+            <g id="Clipped" stroke-linecap="square">
+                <mask id="mask-16" fill="white">
+                    <use xlink:href="#path-15"></use>
+                </mask>
+                <g id="路径"></g>
+                <rect id="矩形" fill="#D2E2F0" fill-rule="nonzero" mask="url(#mask-16)" x="106.5" y="75" width="250" height="40"></rect>
+            </g>
+            <g id="Clipped">
+                <mask id="mask-18" fill="white">
+                    <use xlink:href="#path-17"></use>
+                </mask>
+                <g id="路径"></g>
+                <rect id="矩形" stroke="#000000" mask="url(#mask-18)" x="106.5" y="75" width="250" height="40"></rect>
+            </g>
+            <g id="Clipped">
+                <mask id="mask-20" fill="white">
+                    <use xlink:href="#path-19"></use>
+                </mask>
+                <g id="路径"></g>
+                <text id="grpc-Server" fill="#000000" fill-rule="nonzero" mask="url(#mask-20)" font-family="Helvetica" font-size="12" font-weight="normal">
+                    <tspan x="198.623" y="99.5352">grpc Server</tspan>
+                </text>
+            </g>
+            <g id="Clipped" stroke-linecap="square">
+                <mask id="mask-22" fill="white">
+                    <use xlink:href="#path-21"></use>
+                </mask>
+                <g id="路径"></g>
+                <rect id="矩形" fill="#D2E2F0" fill-rule="nonzero" mask="url(#mask-22)" x="106.5" y="195" width="250" height="40"></rect>
+            </g>
+            <g id="Clipped">
+                <mask id="mask-24" fill="white">
+                    <use xlink:href="#path-23"></use>
+                </mask>
+                <g id="路径"></g>
+                <rect id="矩形" stroke="#000000" mask="url(#mask-24)" x="106.5" y="195" width="250" height="40"></rect>
+            </g>
+            <g id="Clipped">
+                <mask id="mask-26" fill="white">
+                    <use xlink:href="#path-25"></use>
+                </mask>
+                <g id="路径"></g>
+                <text id="MVCC" fill="#000000" fill-rule="nonzero" mask="url(#mask-26)" font-family="Helvetica" font-size="12" font-weight="normal">
+                    <tspan x="214.1064" y="219.5352">MVCC</tspan>
+                </text>
+            </g>
+            <g id="Clipped" stroke-linecap="square">
+                <mask id="mask-28" fill="white">
+                    <use xlink:href="#path-27"></use>
+                </mask>
+                <g id="路径"></g>
+                <rect id="矩形" fill="#D2E2F0" fill-rule="nonzero" mask="url(#mask-28)" x="106.5" y="255" width="250" height="40"></rect>
+            </g>
+            <g id="Clipped">
+                <mask id="mask-30" fill="white">
+                    <use xlink:href="#path-29"></use>
+                </mask>
+                <g id="路径"></g>
+                <rect id="矩形" stroke="#000000" mask="url(#mask-30)" x="106.5" y="255" width="250" height="40"></rect>
+            </g>
+            <g id="Clipped">
+                <mask id="mask-32" fill="white">
+                    <use xlink:href="#path-31"></use>
+                </mask>
+                <g id="路径"></g>
+                <text id="Raft" fill="#000000" fill-rule="nonzero" mask="url(#mask-32)" font-family="Helvetica" font-size="12" font-weight="normal">
+                    <tspan x="219.9424" y="279.5352">Raft</tspan>
+                </text>
+            </g>
+            <g id="Clipped" stroke-linecap="square">
+                <mask id="mask-34" fill="white">
+                    <use xlink:href="#path-33"></use>
+                </mask>
+                <g id="路径"></g>
+                <rect id="矩形" fill="#D2E2F0" fill-rule="nonzero" mask="url(#mask-34)" x="106.5" y="315" width="250" height="40"></rect>
+            </g>
+            <mask id="mask-36" fill="white">
+                <use xlink:href="#path-35"></use>
+            </mask>
+            <g id="路径"></g>
+            <rect id="矩形" stroke="#000000" mask="url(#mask-36)" x="106.5" y="315" width="250" height="40"></rect>
+            <mask id="mask-38" fill="white">
+                <use xlink:href="#path-37"></use>
+            </mask>
+            <g id="路径"></g>
+            <text id="Local-KV-Storage" fill="#000000" fill-rule="nonzero" mask="url(#mask-38)" font-family="Helvetica" font-size="12" font-weight="normal">
+                <tspan x="182.8438" y="339.5352">Local KV Storage</tspan>
+            </text>
+            <mask id="mask-40" fill="white">
+                <use xlink:href="#path-39"></use>
+            </mask>
+            <g id="路径"></g>
+            <line x1="15.7115" y1="64.1771" x2="387.7526" y2="64.1771" id="路径" stroke="#000000" stroke-dasharray="6,2" mask="url(#mask-40)"></line>
+            <mask id="mask-42" fill="white">
+                <use xlink:href="#path-41"></use>
+            </mask>
+            <g id="路径"></g>
+            <text id="Client" fill="#000000" fill-rule="nonzero" mask="url(#mask-42)" font-family="Helvetica" font-size="12" font-weight="normal">
+                <tspan x="20.746" y="38.7123">Client</tspan>
+            </text>
+            <text id="TiKV" fill="#000000" fill-rule="nonzero" mask="url(#mask-42)" font-family="Helvetica" font-size="12" font-weight="normal">
+                <tspan x="23.1954" y="99.8417">TiKV</tspan>
+            </text>
+        </g>
+    </g>
+</svg>

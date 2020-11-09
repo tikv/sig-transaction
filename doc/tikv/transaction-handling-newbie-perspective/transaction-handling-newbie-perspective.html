@@ -1,0 +1,508 @@
+<!DOCTYPE HTML>
+<html lang="en" class="sidebar-visible no-js light">
+    <head>
+        <!-- Book generated using mdBook -->
+        <meta charset="UTF-8">
+        <title>Transactions handling newbiew perspective - TiKV sig-transaction documentation</title>
+        
+        
+
+
+        <!-- Custom HTML head -->
+        
+
+
+        <meta content="text/html; charset=utf-8" http-equiv="Content-Type">
+        <meta name="description" content="Documentation of distributed transactions in TiDB and TiKV. Includes some coverage of general distributed transaction topics.">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta name="theme-color" content="#ffffff" />
+
+        <link rel="icon" href="../../../favicon.svg">
+        <link rel="shortcut icon" href="../../../favicon.png">
+        <link rel="stylesheet" href="../../../css/variables.css">
+        <link rel="stylesheet" href="../../../css/general.css">
+        <link rel="stylesheet" href="../../../css/chrome.css">
+        <link rel="stylesheet" href="../../../css/print.css" media="print">
+
+        <!-- Fonts -->
+        <link rel="stylesheet" href="../../../FontAwesome/css/font-awesome.css">
+        
+        <link rel="stylesheet" href="../../../fonts/fonts.css">
+        
+
+        <!-- Highlight.js Stylesheets -->
+        <link rel="stylesheet" href="../../../highlight.css">
+        <link rel="stylesheet" href="../../../tomorrow-night.css">
+        <link rel="stylesheet" href="../../../ayu-highlight.css">
+
+        <!-- Custom theme stylesheets -->
+        
+
+        
+    </head>
+    <body>
+        <!-- Provide site root to javascript -->
+        <script type="text/javascript">
+            var path_to_root = "../../../";
+            var default_theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? "navy" : "light";
+        </script>
+
+        <!-- Work around some values being stored in localStorage wrapped in quotes -->
+        <script type="text/javascript">
+            try {
+                var theme = localStorage.getItem('mdbook-theme');
+                var sidebar = localStorage.getItem('mdbook-sidebar');
+
+                if (theme.startsWith('"') && theme.endsWith('"')) {
+                    localStorage.setItem('mdbook-theme', theme.slice(1, theme.length - 1));
+                }
+
+                if (sidebar.startsWith('"') && sidebar.endsWith('"')) {
+                    localStorage.setItem('mdbook-sidebar', sidebar.slice(1, sidebar.length - 1));
+                }
+            } catch (e) { }
+        </script>
+
+        <!-- Set the theme before any content is loaded, prevents flash -->
+        <script type="text/javascript">
+            var theme;
+            try { theme = localStorage.getItem('mdbook-theme'); } catch(e) { }
+            if (theme === null || theme === undefined) { theme = default_theme; }
+            var html = document.querySelector('html');
+            html.classList.remove('no-js')
+            html.classList.remove('light')
+            html.classList.add(theme);
+            html.classList.add('js');
+        </script>
+
+        <!-- Hide / unhide sidebar before it is displayed -->
+        <script type="text/javascript">
+            var html = document.querySelector('html');
+            var sidebar = 'hidden';
+            if (document.body.clientWidth >= 1080) {
+                try { sidebar = localStorage.getItem('mdbook-sidebar'); } catch(e) { }
+                sidebar = sidebar || 'visible';
+            }
+            html.classList.remove('sidebar-visible');
+            html.classList.add("sidebar-" + sidebar);
+        </script>
+
+        <nav id="sidebar" class="sidebar" aria-label="Table of contents">
+            <div class="sidebar-scrollbox">
+                <ol class="chapter"><li class="chapter-item expanded "><a href="../../../index.html"><strong aria-hidden="true">1.</strong> Intro</a></li><li class="chapter-item expanded affix "><li class="part-title">Documentation</li><li class="chapter-item expanded "><a href="../../../doc/tikv/index.html"><strong aria-hidden="true">2.</strong> Transactions in TiKV</a></li><li class="chapter-item expanded "><a href="../../../doc/tikv/transaction-handling-newbie-perspective/transaction-handling-newbie-perspective.html" class="active"><strong aria-hidden="true">3.</strong> Transactions handling newbiew perspective</a></li><li class="chapter-item expanded affix "><li class="part-title">Design docs</li><li class="chapter-item expanded "><a href="../../../design/transaction-layer-refactoring.html"><strong aria-hidden="true">4.</strong> Proposal for refactoring how transactional commands are scheduled and implemented</a></li><li class="chapter-item expanded "><a href="../../../design/async-commit/index.html"><strong aria-hidden="true">5.</strong> Async commit</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="../../../design/async-commit/project-summary.html"><strong aria-hidden="true">5.1.</strong> Project summary</a></li><li class="chapter-item expanded "><a href="../../../design/async-commit/initial-design.html"><strong aria-hidden="true">5.2.</strong> Initial design</a></li><li class="chapter-item expanded "><a href="../../../design/async-commit/globally-non-unique-timestamps.html"><strong aria-hidden="true">5.3.</strong> Non-unique timestamps</a></li><li class="chapter-item expanded "><a href="../../../design/async-commit/replica-read.html"><strong aria-hidden="true">5.4.</strong> Replica read</a></li><li class="chapter-item expanded "><a href="../../../design/async-commit/parallel-commit-known-issues-and-solutions.html"><strong aria-hidden="true">5.5.</strong> Known issues</a></li></ol></li></ol>
+            </div>
+            <div id="sidebar-resize-handle" class="sidebar-resize-handle"></div>
+        </nav>
+
+        <div id="page-wrapper" class="page-wrapper">
+
+            <div class="page">
+                
+                <div id="menu-bar-hover-placeholder"></div>
+                <div id="menu-bar" class="menu-bar sticky bordered">
+                    <div class="left-buttons">
+                        <button id="sidebar-toggle" class="icon-button" type="button" title="Toggle Table of Contents" aria-label="Toggle Table of Contents" aria-controls="sidebar">
+                            <i class="fa fa-bars"></i>
+                        </button>
+                        <button id="theme-toggle" class="icon-button" type="button" title="Change theme" aria-label="Change theme" aria-haspopup="true" aria-expanded="false" aria-controls="theme-list">
+                            <i class="fa fa-paint-brush"></i>
+                        </button>
+                        <ul id="theme-list" class="theme-popup" aria-label="Themes" role="menu">
+                            <li role="none"><button role="menuitem" class="theme" id="light">Light (default)</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="rust">Rust</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="coal">Coal</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="navy">Navy</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="ayu">Ayu</button></li>
+                        </ul>
+                        
+                        <button id="search-toggle" class="icon-button" type="button" title="Search. (Shortkey: s)" aria-label="Toggle Searchbar" aria-expanded="false" aria-keyshortcuts="S" aria-controls="searchbar">
+                            <i class="fa fa-search"></i>
+                        </button>
+                        
+                    </div>
+
+                    <h1 class="menu-title">TiKV sig-transaction documentation</h1>
+
+                    <div class="right-buttons">
+                        <a href="../../../print.html" title="Print this book" aria-label="Print this book">
+                            <i id="print-button" class="fa fa-print"></i>
+                        </a>
+                        
+                        <a href="https://github.com/tikv/sig-transaction" title="Git repository" aria-label="Git repository">
+                            <i id="git-repository-button" class="fa fa-github"></i>
+                        </a>
+                        
+                    </div>
+                </div>
+
+                
+                <div id="search-wrapper" class="hidden">
+                    <form id="searchbar-outer" class="searchbar-outer">
+                        <input type="search" name="search" id="searchbar" name="searchbar" placeholder="Search this book ..." aria-controls="searchresults-outer" aria-describedby="searchresults-header">
+                    </form>
+                    <div id="searchresults-outer" class="searchresults-outer hidden">
+                        <div id="searchresults-header" class="searchresults-header"></div>
+                        <ul id="searchresults">
+                        </ul>
+                    </div>
+                </div>
+                
+
+                <!-- Apply ARIA attributes after the sidebar and the sidebar toggle button are added to the DOM -->
+                <script type="text/javascript">
+                    document.getElementById('sidebar-toggle').setAttribute('aria-expanded', sidebar === 'visible');
+                    document.getElementById('sidebar').setAttribute('aria-hidden', sidebar !== 'visible');
+                    Array.from(document.querySelectorAll('#sidebar a')).forEach(function(link) {
+                        link.setAttribute('tabIndex', sidebar === 'visible' ? 0 : -1);
+                    });
+                </script>
+
+                <div id="content" class="content">
+                    <main>
+                        <h1><a class="header" href="#transaction-handling-process" id="transaction-handling-process">Transaction Handling Process</a></h1>
+<p>This article will introduce how transaction requests are handled in TiKV.</p>
+<p>The urls in this article refers to the code which performs certain operation.</p>
+<p>In a system which consists of TiDB and TiKV, the architecture looks like this:</p>
+<p><img src="architecture.svg" alt="architecture" /></p>
+<p>Though client is not part of TiKV, it is also an important to read some code in it to understand how a request is handled. </p>
+<p>There're many implements of client, and their process of sending a request is similiar, we'll take <a href="https://github.com/TiKV/client-rust">client-rust</a> as an example here.</p>
+<p>Basically, TiKV's transaction system is based on Google's <a href="https://research.google/pubs/pub36726/">Percolator</a>, you are recommended to read some material about it before you start reading this.</p>
+<h3><a class="header" href="#begin" id="begin">Begin</a></h3>
+<p>You'll need a client object to start a transaction.</p>
+<p>The code which creates a transaction is <a href="https://github.com/tikv/client-rust/blob/07194c4c436e393358986b84daa2ad1e41b4886c/src/transaction/client.rs#L28">here</a>, you can see the client includes a <code>PdRpcClient</code>, which is responsible for communicate with the pd component.</p>
+<p>And then you can use <a href="https://github.com/tikv/client-rust/blob/07194c4c436e393358986b84daa2ad1e41b4886c/src/transaction/client.rs#L51"><code>Client::begin</code></a> to start an transaction.</p>
+<pre><pre class="playground"><code class="language-rust no_run edition2018">
+<span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>pub async fn begin(&amp;self) -&gt; Result&lt;Transaction&gt; {
+	let timestamp = self.current_timestamp().await?;
+	Ok(self.new_transaction(timestamp))
+}
+<span class="boring">}
+</span></code></pre></pre>
+<p>Firstly, we'll need to get a time stamp from pd, and then we'll create a new <code>Transaction</code> object by using current timestamp.</p>
+<h3><a class="header" href="#single-point-read" id="single-point-read">Single point read</a></h3>
+<p>We can use <code>Transaction::get</code>  to get a single value for a certain key.</p>
+<p>This part of code is <a href="https://github.com/TiKV/client-rust/blob/fe765f191115d5ca0eb05275e45e086c2276c2ed/src/transaction/transaction.rs#L71">here</a>.</p>
+<p>We'll try to read the local buffered key first. And if the local buffered key does not exist, a <code>GetRequest</code> will be sent to TiKV.</p>
+<p>You may have known that TiKV divide all the data into different regions, and each replica of some certain region is on its own TiKV node, and pd will manage the meta infomation about where are the replicas for some certain key is.</p>
+<p>The code above seems doesn't cover the steps which decide which TiKV node should we send the request to. But that's not the case. The code which do these jobs is hidden under <a href="https://github.com/tikv/client-rust/blob/07194c4c436e393358986b84daa2ad1e41b4886c/src/request.rs#L29"><code>execute</code></a>, and you'll find the code which tries to get the TiKV node <a href="https://github.com/tikv/client-rust/blob/b7ced1f44ed9ece4405eee6d2573a6ca6fa46379/src/pd/client.rs#L42">here</a> , and it is called by <code>retry_response_stream</code> <a href="https://github.com/tikv/client-rust/blob/07194c4c436e393358986b84daa2ad1e41b4886c/src/request.rs#L48">here</a>:</p>
+<pre><pre class="playground"><code class="language-rust no_code edition2018">
+<span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>fn store_for_key(
+        self: Arc&lt;Self&gt;,
+        key: &amp;Key,
+    ) -&gt; BoxFuture&lt;'static, Result&lt;Store&lt;Self::KvClient&gt;&gt;&gt; {
+        self.region_for_key(key)
+            .and_then(move |region| self.map_region_to_store(region))
+            .boxed()
+    }
+<span class="boring">}
+</span></code></pre></pre>
+<p>Firstly, it will use grpc call <a href="https://github.com/pingcap/kvproto/blob/d4aeb467de2904c19a20a12de47c25213b759da1/proto/pdpb.proto#L41"><code>GetRegion</code></a> in <code>region_for_key</code> to find out which region is the key in.</p>
+<p>The remote fuction <code>GetRegion</code> it defined is <a href="https://github.com/pingcap/pd/blob/6dab049720f4c4e1a91405806fc1fa6517928589/server/grpc_service.go#L416">here</a> in pd.</p>
+<p>And then we'll use grpc call <a href="https://github.com/pingcap/kvproto/blob/d4aeb467de2904c19a20a12de47c25213b759da1/proto/pdpb.proto#L31"><code>GetStore</code></a> in <code>map_region_to_store</code> to find out the leader of region.</p>
+<p>The remote fuction <code>GetStore</code> it defined is <a href="https://github.com/pingcap/pd/blob/2b56a4c5915cb4b8806629193fd943a2e860ae4f/server/grpc_service.go#L171">here</a> in pd.</p>
+<p>Finally we'll get a <code>KvRpcClient</code> instance, which represents the connection to a TiKV replica.</p>
+<p>Then let's back to <code>retry_response_stream</code>, next function call we should pay attention to is  <code>store.dispatch</code>, it calls grpc function <a href="https://github.com/pingcap/kvproto/blob/5f564ec8820e3b4002930f6f3dd1fcd710d4ecd0/proto/tikvpb.proto#L21"><code>KvGet</code></a>.</p>
+<p>And finally we reach the code in TiKV's repo. In TiKV, the requests are handled by <a href="https://github.com/tikv/tikv/blob/bf716a111fde9fe8da56f8bd840c53d80c395525/src/server/server.rs#L49"><code>Server</code> struct</a> , and the <code>KvGet</code> will be handled by <code>future_get</code> <a href="https://github.com/tikv/tikv/blob/bf716a111fde9fe8da56f8bd840c53d80c395525/src/server/service/kv.rs#L1136">here</a>.</p>
+<p>Firstly we'll read the value for a key by using <a href="https://github.com/tikv/tikv/blob/bf716a111fde9fe8da56f8bd840c53d80c395525/src/storage/mod.rs#L213"><code>Storage::get</code></a>.</p>
+<p><code>get</code> function is a little bit long, we'll ignore <code>STATIC</code> parts for now, and we'll get:</p>
+<pre><pre class="playground"><code class="language-rust no_run edition2018">
+<span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>pub fn get(&amp;self, mut ctx: Context, key: Key,
+    start_ts: TimeStamp) -&gt; impl Future&lt;Item = Option&lt;Value&gt;, Error = Error&gt; {
+    const CMD: CommandKind = CommandKind::get;
+    let priority = ctx.get_priority();
+    let priority_tag = get_priority_tag(priority);
+
+    let res = self.read_pool.spawn_handle(
+        async move {
+            // The bypass_locks set will be checked at most once. `TsSet::vec` is more efficient
+            // here.
+            let bypass_locks = TsSet::vec_from_u64s(ctx.take_resolved_locks());
+            let snapshot = Self::with_tls_engine(|engine| Self::snapshot(engine, &amp;ctx)).await?;
+            let snap_store = SnapshotStore::new(snapshot, start_ts,
+                        ctx.get_isolation_level(),
+                        !ctx.get_not_fill_cache(),
+                        bypass_locks,
+                        false);
+            let result = snap_store.get(&amp;key, &amp;mut statistics)
+                    // map storage::txn::Error -&gt; storage::Error
+                    .map_err(Error::from);
+            result
+        },
+        priority,
+        thread_rng().next_u64(),
+    );
+    res.map_err(|_| Error::from(ErrorInner::SchedTooBusy))
+        .flatten()
+}
+<span class="boring">}
+</span></code></pre></pre>
+<p>This function will get a <code>snapshot</code>, and then construct a <code>SnapshotStore</code> by using the <code>snapshot</code>, and then call <code>get</code> on this <code>SnapshotStore</code>, and finally get the data we need.</p>
+<p>The <code>bypass_locks</code> part is a tricky optimize related to <a href="https://pingcap.com/blog/large-transactions-in-tidb/">large transaction</a>, see <a href="https://github.com/tikv/tikv/pull/5798">this pr</a>.</p>
+<p>Then we'll view the code of <code>SnapshotStore::get</code>, you'll see that in fact it consturcted a <a href="https://github.com/tikv/tikv/blob/4ac9a68126056d1b7cf0fc9323b899253b73e577/src/storage/mvcc/reader/point_getter.rs#L133"><code>PointGetter</code></a>, and then call the <code>get</code> method on <code>PointGetter</code>:</p>
+<pre><pre class="playground"><code class="language-rust no_run edition2018">
+<span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>pub fn get(&amp;mut self, user_key: &amp;Key) -&gt; Result&lt;Option&lt;Value&gt;&gt; {
+    if !self.multi {
+        // Protect from calling `get()` multiple times when `multi == false`.
+        if self.drained {
+            return Ok(None);
+        } else {
+            self.drained = true;
+        }
+    }
+
+    match self.isolation_level {
+        IsolationLevel::Si =&gt; {
+            // Check for locks that signal concurrent writes in Si.
+            self.load_and_check_lock(user_key)?;
+        }
+        IsolationLevel::Rc =&gt; {}
+    }
+
+    self.load_data(user_key)
+}
+<span class="boring">}
+</span></code></pre></pre>
+<p>As we can see, if the required <code>isolation_level</code> is <code>Si</code>, we need to check whether there's any locks which may conflict with current get. If we find some, we'll return a  <code>KeyIsLocked</code> error:</p>
+<pre><pre class="playground"><code class="language-rust no_run edition2018">
+<span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>fn load_and_check_lock(&amp;mut self, user_key: &amp;Key) -&gt; Result&lt;()&gt; {
+    self.statistics.lock.get += 1;
+    let lock_value = self.snapshot.get_cf(CF_LOCK, user_key)?;
+
+    if let Some(ref lock_value) = lock_value {
+        self.statistics.lock.processed += 1;
+        let lock = Lock::parse(lock_value)?;
+        if self.met_newer_ts_data == NewerTsCheckState::NotMetYet {
+            self.met_newer_ts_data = NewerTsCheckState::Met;
+        }
+        lock.check_ts_conflict(user_key, self.ts, &amp;self.bypass_locks)
+            .map_err(Into::into)
+    } else {
+        Ok(())
+    }
+}
+<span class="boring">}
+</span></code></pre></pre>
+<p>And then we'll use <code>PointGetter</code>'s <code>load_data</code>  method to load the value.</p>
+<p>Now we have the value in <code>GetResponse</code>. But if the key is locked, client still need to resolve the locked keys. This will still be handled in  <code>retry_response_stream</code>.</p>
+<h4><a class="header" href="#resolve-locks" id="resolve-locks">Resolve locks</a></h4>
+<p>First, the client will take the locks we met from the response, and then we'll use <code>resolve_locks</code> to try to resolve them:</p>
+<p>We find all the locks which are expired, and resolve them one by one. </p>
+<p>Then we'll get <code>lock_version</code>'s corresponding <code>commit_version</code> (might be buffered), and use it to send <code>cleanup_request</code>.</p>
+<p>It seems that using <code>CleanupRequest</code> directly is deprecated after 4.0 , then we'll simply igonre it.</p>
+<p>And then it is the key point: <a href="https://github.com/tikv/client-rust/blob/07194c4c436e393358986b84daa2ad1e41b4886c/src/transaction/lock.rs#L74"><code>resolve_lock_with_retry</code></a>, this function will construct a  <code>ResolveLockRequest</code>, and send it to TiKV to execute.</p>
+<p>Let's turn to TiKV's source code, according to whether the <code>key</code> on the request is empty, <code>ResolveLockRequest</code> will be converted into <code>ResolveLockReadPhase</code> + <code>ResolveLock</code> or <code>ResolveLockLite</code>. The difference between those two is that <code>ResolveLockLite</code> will only handle the locks <code>Request</code> ask for resolve, while <code>ResolveLock</code> will resolve locks in a whole region.</p>
+<p>The handling of <code>ResolveLock</code> has 2 parts: the read phase is <a href="https://github.com/tikv/tikv/blob/bf716a111fde9fe8da56f8bd840c53d80c395525/src/storage/txn/process.rs#L122">here</a>, which is resposible for read out the locks and construct the write phase command, and the write phase is <a href="https://github.com/TiKV/TiKV/blob/82d180d120e115e69512ea7f944e93e6dc5022a0/src/storage/txn/process.rs#L775">here</a>, which is responsible for the release work.</p>
+<p>These two code part uses <code>MvccTxn</code> and <code>MvccReader</code>, we'll explain them later in another article.</p>
+<p><a href="https://github.com/tikv/tikv/blob/bf716a111fde9fe8da56f8bd840c53d80c395525/src/storage/txn/commands/resolve_lock.rs#L17">Comments</a> here gives a good intruduction of what <code>ResolveLock</code> do.</p>
+<p>After all <code>expired_locks</code> are resolved, a new <code>GetRequest</code> is sent, and the get process will be done again until it success.</p>
+<p>And then, the result value is returned. (Finally!)</p>
+<p>Let's summerize the process with a dataflow diagram.</p>
+<p><img src="single-point-get-dfd.svg" alt="single-point-get-dfd" /></p>
+<h3><a class="header" href="#scan" id="scan">Scan</a></h3>
+<p>On the client side, scan is almost the same as single point get, except that it sends a <a href="https://github.com/pingcap/kvproto/blob/5f564ec8820e3b4002930f6f3dd1fcd710d4ecd0/proto/tikvpb.proto#L22"><code>KvScan</code></a> grpc call instead of <code>KvGet</code>.</p>
+<p>And on the TiKV side, things are a little different, firstly, the request will be handled by <a href="https://github.com/tikv/tikv/blob/bf716a111fde9fe8da56f8bd840c53d80c395525/src/server/service/kv.rs#L1161"><code>future_scan</code></a>, and then <a href="https://github.com/tikv/tikv/blob/bf716a111fde9fe8da56f8bd840c53d80c395525/src/storage/mod.rs#L443"><code>Storage::scan</code></a>，and finally we'll find out the function which really do the job is a <a href="https://github.com/tikv/tikv/blob/bf716a111fde9fe8da56f8bd840c53d80c395525/src/storage/mvcc/reader/scanner/mod.rs#L171"><code>Scanner</code></a>, and we'll cover this part in another document. </p>
+<h3><a class="header" href="#write" id="write">Write</a></h3>
+<p>In fact, write just write to local buffer. All data modifications will be sent to TiKV on prewrite.</p>
+<h3><a class="header" href="#commit" id="commit">Commit</a></h3>
+<p>Now comes the most interesting part: commit, just like what I mentioned, commit in TiKV is based on <a href="https://research.google/pubs/pub36726/">Percolator</a>, but there are several things that are different:</p>
+<ul>
+<li>
+<p><a href="https://research.google/pubs/pub36726/">Percolator</a> depends on BigTable's single row transaction, so we must implement something alike by ourselves in TiKV.</p>
+</li>
+<li>
+<p>We need to support pessimistic transaction</p>
+<p>Pessimistic transaction enable TiDB to have a better MySQL compatibility, and save rollbacks under high load.</p>
+<p>But it introduces some other problems such as:</p>
+<ul>
+<li>
+<p>dead lock</p>
+<p>In optimistic transaction handling, dead lock won't happen because in the prewrite stage, a transaction would about if another transaction holds a lock it needs, and in the read stage, the locks from a dead transaction are resolved.</p>
+</li>
+</ul>
+</li>
+</ul>
+<p>So let's see how TiKV deal with these things.</p>
+<h4><a class="header" href="#client" id="client">Client</a></h4>
+<p>From the client side, the commit process is easy, you can see we use a <a href="https://github.com/tikv/client-rust/blob/fe765f191115d5ca0eb05275e45e086c2276c2ed/src/transaction/transaction.rs#L249"><code>TwoPhaseCommitter</code></a> to do the commit job, and what it does is just as the <a href="https://research.google/pubs/pub36726/">Percolator</a> paper says: <a href="https://github.com/tikv/client-rust/blob/fe765f191115d5ca0eb05275e45e086c2276c2ed/src/transaction/transaction.rs#L278"><code>prewrite</code></a>, <a href="https://github.com/tikv/client-rust/blob/fe765f191115d5ca0eb05275e45e086c2276c2ed/src/transaction/transaction.rs#L293"><code>commit_primary</code></a> and finally <a href="https://github.com/tikv/client-rust/blob/fe765f191115d5ca0eb05275e45e086c2276c2ed/src/transaction/transaction.rs#L310"><code>commit_secondary</code></a>.</p>
+<h4><a class="header" href="#acquirepessimisticlock" id="acquirepessimisticlock">AcquirePessimisticLock</a></h4>
+<p>This is used in the pessimistic transaction handling. It locks certain keys to prevent them from being changed by other transactions.</p>
+<p>This one does not exists in client-rust for now, so you have to read TiDB's code <a href="https://github.com/pingcap/tidb/blob/3748eb920300bd4bc0917ce852a14d90e8e0fafa/store/tikv/pessimistic.go#L58">here</a>.</p>
+<p>Basically, it sends a <code>PessimisticLockRequest</code> to TiKV, and TiKV will handle it <a href="https://github.com/tikv/tikv/blob/bf716a111fde9fe8da56f8bd840c53d80c395525/src/storage/txn/process.rs#L397">here</a>, it just run <code>MvccTxn::acquire_pessimistic_lock</code> for each key to lock, which just put a lock on the key, the lock is just like the lock used in prewrite in optimistic transaction, the only differece is its type is <code>LockType::Pessimistic</code>.</p>
+<p>And the it returns whether the lock is successful. If not, it will also <a href="https://github.com/tikv/tikv/blob/bf716a111fde9fe8da56f8bd840c53d80c395525/src/storage/txn/process.rs#L447">return the lock to wait for</a>.</p>
+<h4><a class="header" href="#prewrite" id="prewrite">Prewrite</a></h4>
+<p>On TiKV side, the prewrite process happens <a href="https://github.com/tikv/tikv/blob/4a75902f266fbbc064f0c19a2a681cfe66511bc3/src/storage/txn/process.rs#L557">here in <code>process_write_impl</code></a>.</p>
+<p>The first few lines of code (<code>if rows &gt; FORWARD_MIN_MUTATIONS_NUM</code> part) is not covered by the <a href="https://pingcap.com/blog-cn/tikv-source-code-reading-12/"><code>TiKV Source Code Reading blogs</code></a>. I guess it means:</p>
+<pre><code>if there's no &quot;write&quot; record in [mutations.minKey, mutation.maxKey] {
+	skip_constraint_check = true;
+  scan_mode = Some(ScanMode::Forward)
+}
+</code></pre>
+<p>As far as I understand, it just provides a optimized way of checking the &quot;write&quot; column, see <a href="https://github.com/tikv/tikv/pull/5846">tikv#5846</a> for details.</p>
+<p>And no matter whether this branch is taken, we'll construct a <code>MvccTxn</code> , and then use it to do the prewrite job for each mutation the client sent to the TiKV server.</p>
+<p>The <a href="https://github.com/tikv/tikv/blob/4a75902f266fbbc064f0c19a2a681cfe66511bc3/src/storage/mvcc/txn.rs#L563"><code>MvccTxn::prewrite</code></a> function just do what the <a href="https://research.google/pubs/pub36726/">Percolator</a> describes: check the <code>write</code> record in <code>[start_ts, ∞]</code> to find a newer write (this can be bypassed if <code>skip_constraint_check</code> is set, we can ignore this check safely in situations like import data). And then check whether the current key is locked at any timestamp. And finally use <a href="https://github.com/tikv/tikv/blob/bf716a111fde9fe8da56f8bd840c53d80c395525/src/storage/mvcc/txn.rs#L207"><code>prewrite_key_value</code></a> to lock the key and write the value in.</p>
+<h5><a class="header" href="#latches" id="latches">Latches</a></h5>
+<p>Just as I mentioned, there's no such things like &quot;single row transaction&quot; in TiKV, so we need another way to prevent the key's locking state changed by another transaction during <code>prewrite</code>.</p>
+<p>TiKV use <a href="https://github.com/tikv/tikv/blob/bf716a111fde9fe8da56f8bd840c53d80c395525/src/storage/txn/latch.rs#L125"><code>Latches</code></a> to archieve this, you can consider it as a Map from key('s hashcode) to mutexes. You can lock a key in the <code>Latches</code> to prevent it be used by other transactions.</p>
+<p>The latches is used in <a href="https://github.com/tikv/tikv/blob/bf716a111fde9fe8da56f8bd840c53d80c395525/src/storage/txn/scheduler.rs#L335"><code>try_to_wake_up</code></a> , this is called before each command is executed, it will lock all the latches the commands used.</p>
+<p><img src="prewrite-dfd.svg" alt="prewrite-dfd" /></p>
+<h4><a class="header" href="#prewritepessimistic" id="prewritepessimistic">PrewritePessimistic</a></h4>
+<p><a href="https://github.com/tikv/tikv/blob/3a4a0c98f9efc2b409add8cb6ac9e8886bb5730c/src/storage/txn/process.rs#L624"><code>PrewritePessimistic</code>'s handling</a> is very similiar to <code>Prewrite</code>, except it:</p>
+<ul>
+<li>doesn't need to read the write record for checking conflict, because the potential conflicts have already checked during acquiring the lock</li>
+<li>downgrade the pessimistic lock to optimistic lock during prewrite, so the following commit process would be the same as the commit process in optmistic transaction handling</li>
+<li>needs to prevent deadlock</li>
+</ul>
+<h5><a class="header" href="#dead-lock-handling" id="dead-lock-handling">Dead lock handling</a></h5>
+<p>There won't be a dead lock in the optimistic transaction handling process, because we can know all the keys to lock during the prewrite process, so we can lock them in order.</p>
+<p>But during the pessimistic transaction handling process, the situation is very different: when to lock a key or which keys to lock are totally decided by the user, so for example:</p>
+<pre><code>transaction A:
+	lock key a;
+	do some process;
+	lock key b;
+	do some other process;
+commit
+</code></pre>
+<p>and</p>
+<pre><code>transaction B:
+	lock key b;
+	do some process;
+	lock key a;
+	do some other process;
+commit
+</code></pre>
+<p>If you are unlucky, transaction A will hold the lock on <code>a</code> and try to get the lock on <code>b</code>, and transaction B will hold the lock <code>b</code> and try to get the lock on <code>a</code>, and neither of them can get the lock and continue with their jobs, so a dead lock occurred.</p>
+<p>TiKV use deadlock detection to prevent this kind of situation.</p>
+<p>The deadlock detector is made up with two parts: the <a href="https://github.com/tikv/tikv/blob/bf716a111fde9fe8da56f8bd840c53d80c395525/src/server/lock_manager/mod.rs#L49"><code>LockManager</code></a> and the <a href="https://github.com/tikv/tikv/blob/3a4a0c98f9efc2b409add8cb6ac9e8886bb5730c/src/server/lock_manager/deadlock.rs#L467"><code>Detector</code></a>.</p>
+<p>Basically, these two make a <em>Directed acyclic graph</em> with the transactions and the locks it require, if adding a node may break the &quot;acyclic&quot; rule, then a potential deadlock is detected, a separate doc will be add to describe the <a href="https://github.com/tikv/tikv/blob/bf716a111fde9fe8da56f8bd840c53d80c395525/src/server/lock_manager/mod.rs#L49"><code>LockManager</code></a>.</p>
+<h4><a class="header" href="#do-commit" id="do-commit">(Do) Commit</a></h4>
+<p>After <code>prewrite</code> is done, the client will do the commit works: first commit the primary key, then the secondary ones, both these two kind of keys' commit are represented by the <code>Commit</code> command and handled <a href="https://github.com/tikv/tikv/blob/bf716a111fde9fe8da56f8bd840c53d80c395525/src/storage/txn/process.rs#L454">here</a>. </p>
+<p>In the commit process we just use <a href="https://github.com/tikv/tikv/blob/bf716a111fde9fe8da56f8bd840c53d80c395525/src/storage/mvcc/txn.rs#L681"><code>MvccTxn::commit</code></a> to commit each key, which it does is much like <a href="https://research.google/pubs/pub36726/">Percolator</a> describes,.</p>
+<p>We also collect the released locks and use it to <a href="https://github.com/tikv/tikv/blob/17e75b6d1d1a8f1fb419f8be249bc684b3defbdb/src/storage/txn/process.rs#L513">wake up the waiting pessimistic transactions</a>.</p>
+<h3><a class="header" href="#rollback" id="rollback">Rollback</a></h3>
+<h4><a class="header" href="#optimistic-rollback" id="optimistic-rollback">(Optimistic) Rollback</a></h4>
+<p>On the client side, <a href="https://github.com/tikv/client-rust/blob/fe765f191115d5ca0eb05275e45e086c2276c2ed/src/transaction/transaction.rs#L327">rollback</a> just construct a <code>BatchRollbackRequest</code> with the keys changed in this transaction and a <code>start_version</code> which identify the transaction to be rolled back, and send it to server.</p>
+<p>On the server side, it just call <a href="https://github.com/tikv/tikv/blob/1709de63b3b66f474ff757133a8a1076cf77f196/src/storage/mvcc/txn.rs#L732"><code>MvccTxn::rollback</code></a> <a href="https://github.com/tikv/tikv/blob/1709de63b3b66f474ff757133a8a1076cf77f196/src/storage/txn/process.rs#L778">here</a>, and <a href="https://github.com/tikv/tikv/blob/1709de63b3b66f474ff757133a8a1076cf77f196/src/storage/mvcc/txn.rs#L732"><code>MvccTxn::rollback</code></a> is a direct proxy to <a href="https://github.com/tikv/tikv/blob/1709de63b3b66f474ff757133a8a1076cf77f196/src/storage/mvcc/txn.rs#L795"><code>MvccTxn::cleanup</code></a>.</p>
+<p>Let's view the code in <a href="https://github.com/tikv/tikv/blob/bf716a111fde9fe8da56f8bd840c53d80c395525/src/storage/mvcc/txn.rs#L831"><code>MvccTxn::cleanup</code></a>:</p>
+<p>The first branch in the <code>match</code> is taken when there's a lock on the key.</p>
+<p><code>!current_ts.is_zero()</code> is always false in the rollback situation, so we'll ignore it here.</p>
+<p>Then we'll call <a href="https://github.com/tikv/tikv/blob/bf716a111fde9fe8da56f8bd840c53d80c395525/src/storage/mvcc/txn.rs#L263"><code>MvccTxn::rollback_lock</code></a>:</p>
+<p>First remove the value written if necessary:</p>
+<pre><pre class="playground"><code class="language-rust edition2018">
+<span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>if lock.short_value.is_none() &amp;&amp; lock.lock_type == LockType::Put {
+	self.delete_value(key.clone(), lock.ts);
+}
+<span class="boring">}
+</span></code></pre></pre>
+<p>And then put the write record.</p>
+<pre><pre class="playground"><code class="language-rust edition2018">
+<span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>let protected: bool = is_pessimistic_txn &amp;&amp; key.is_encoded_from(&amp;lock.primary);
+let write = Write::new_rollback(self.start_ts, protected);
+self.put_write(key.clone(), self.start_ts, write.as_ref().to_bytes());
+<span class="boring">}
+</span></code></pre></pre>
+<p>And then collapse the prev rollback if necessary:</p>
+<pre><pre class="playground"><code class="language-rust edition2018">
+<span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>if self.collapse_rollback {
+	self.collapse_prev_rollback(key.clone())?;
+}
+<span class="boring">}
+</span></code></pre></pre>
+<p>Finally unlock the key:</p>
+<pre><pre class="playground"><code class="language-rust edition2018">
+<span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>Ok(self.unlock_key(key, is_pessimistic_txn))
+<span class="boring">}
+</span></code></pre></pre>
+<p>On the other hand, in <a href="https://github.com/tikv/tikv/blob/1709de63b3b66f474ff757133a8a1076cf77f196/src/storage/mvcc/txn.rs#L795"><code>MvccTxn::cleanup</code></a>, when there's no lock on the key, first we'll use <a href="https://github.com/tikv/tikv/blob/1709de63b3b66f474ff757133a8a1076cf77f196/src/storage/mvcc/txn.rs#L745"><code>check_txn_status_missing_lock</code></a> to decide the status of the transaction, if the transaction has already committed, return an error, else it is ok.</p>
+<h4><a class="header" href="#pessimistic-rollback" id="pessimistic-rollback">Pessimistic Rollback</a></h4>
+<p>The only difference between the handling of <code>PessimisticRollback</code> and <code>Rollback</code> is <code>PessimisticRollback</code> use <a href="https://github.com/tikv/tikv/blob/1709de63b3b66f474ff757133a8a1076cf77f196/src/storage/mvcc/txn.rs#L842"><code>MvccTxn::pessimistic_rollback</code></a> here.</p>
+<p>And the only job <a href="https://github.com/tikv/tikv/blob/1709de63b3b66f474ff757133a8a1076cf77f196/src/storage/mvcc/txn.rs#L842"><code>MvccTxn::pessimistic_rollback</code></a> is to remove the lock the transaction put on the key.</p>
+<h2><a class="header" href="#summary" id="summary">Summary</a></h2>
+<p>This article gives a brief introduction on how transactions are handled in TiKV, and contain links which shows us where are the code corresponding to some certain action.</p>
+<p>This is just a high-level and brief introduction, we did not dive very deep into several parts of the code base, eg. the mvcc part, the scheduler. But I hope this article can give you a basic view of TiKV's transaction handling system and help you to get farmiliar of some of our code base.</p>
+
+                    </main>
+
+                    <nav class="nav-wrapper" aria-label="Page navigation">
+                        <!-- Mobile navigation buttons -->
+                        
+                            <a rel="prev" href="../../../doc/tikv/index.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                                <i class="fa fa-angle-left"></i>
+                            </a>
+                        
+
+                        
+                            <a rel="next" href="../../../design/transaction-layer-refactoring.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                                <i class="fa fa-angle-right"></i>
+                            </a>
+                        
+
+                        <div style="clear: both"></div>
+                    </nav>
+                </div>
+            </div>
+
+            <nav class="nav-wide-wrapper" aria-label="Page navigation">
+                
+                    <a rel="prev" href="../../../doc/tikv/index.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                        <i class="fa fa-angle-left"></i>
+                    </a>
+                
+
+                
+                    <a rel="next" href="../../../design/transaction-layer-refactoring.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                        <i class="fa fa-angle-right"></i>
+                    </a>
+                
+            </nav>
+
+        </div>
+
+        
+
+        
+
+        
+
+        
+        <script type="text/javascript">
+            window.playground_copyable = true;
+        </script>
+        
+
+        
+
+        
+        <script src="../../../elasticlunr.min.js" type="text/javascript" charset="utf-8"></script>
+        <script src="../../../mark.min.js" type="text/javascript" charset="utf-8"></script>
+        <script src="../../../searcher.js" type="text/javascript" charset="utf-8"></script>
+        
+
+        <script src="../../../clipboard.min.js" type="text/javascript" charset="utf-8"></script>
+        <script src="../../../highlight.js" type="text/javascript" charset="utf-8"></script>
+        <script src="../../../book.js" type="text/javascript" charset="utf-8"></script>
+
+        <!-- Custom JS scripts -->
+        
+
+        
+
+    </body>
+</html>

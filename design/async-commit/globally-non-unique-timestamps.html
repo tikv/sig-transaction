@@ -1,0 +1,308 @@
+<!DOCTYPE HTML>
+<html lang="en" class="sidebar-visible no-js light">
+    <head>
+        <!-- Book generated using mdBook -->
+        <meta charset="UTF-8">
+        <title>Non-unique timestamps - TiKV sig-transaction documentation</title>
+        
+        
+
+
+        <!-- Custom HTML head -->
+        
+
+
+        <meta content="text/html; charset=utf-8" http-equiv="Content-Type">
+        <meta name="description" content="Documentation of distributed transactions in TiDB and TiKV. Includes some coverage of general distributed transaction topics.">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta name="theme-color" content="#ffffff" />
+
+        <link rel="icon" href="../../favicon.svg">
+        <link rel="shortcut icon" href="../../favicon.png">
+        <link rel="stylesheet" href="../../css/variables.css">
+        <link rel="stylesheet" href="../../css/general.css">
+        <link rel="stylesheet" href="../../css/chrome.css">
+        <link rel="stylesheet" href="../../css/print.css" media="print">
+
+        <!-- Fonts -->
+        <link rel="stylesheet" href="../../FontAwesome/css/font-awesome.css">
+        
+        <link rel="stylesheet" href="../../fonts/fonts.css">
+        
+
+        <!-- Highlight.js Stylesheets -->
+        <link rel="stylesheet" href="../../highlight.css">
+        <link rel="stylesheet" href="../../tomorrow-night.css">
+        <link rel="stylesheet" href="../../ayu-highlight.css">
+
+        <!-- Custom theme stylesheets -->
+        
+
+        
+    </head>
+    <body>
+        <!-- Provide site root to javascript -->
+        <script type="text/javascript">
+            var path_to_root = "../../";
+            var default_theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? "navy" : "light";
+        </script>
+
+        <!-- Work around some values being stored in localStorage wrapped in quotes -->
+        <script type="text/javascript">
+            try {
+                var theme = localStorage.getItem('mdbook-theme');
+                var sidebar = localStorage.getItem('mdbook-sidebar');
+
+                if (theme.startsWith('"') && theme.endsWith('"')) {
+                    localStorage.setItem('mdbook-theme', theme.slice(1, theme.length - 1));
+                }
+
+                if (sidebar.startsWith('"') && sidebar.endsWith('"')) {
+                    localStorage.setItem('mdbook-sidebar', sidebar.slice(1, sidebar.length - 1));
+                }
+            } catch (e) { }
+        </script>
+
+        <!-- Set the theme before any content is loaded, prevents flash -->
+        <script type="text/javascript">
+            var theme;
+            try { theme = localStorage.getItem('mdbook-theme'); } catch(e) { }
+            if (theme === null || theme === undefined) { theme = default_theme; }
+            var html = document.querySelector('html');
+            html.classList.remove('no-js')
+            html.classList.remove('light')
+            html.classList.add(theme);
+            html.classList.add('js');
+        </script>
+
+        <!-- Hide / unhide sidebar before it is displayed -->
+        <script type="text/javascript">
+            var html = document.querySelector('html');
+            var sidebar = 'hidden';
+            if (document.body.clientWidth >= 1080) {
+                try { sidebar = localStorage.getItem('mdbook-sidebar'); } catch(e) { }
+                sidebar = sidebar || 'visible';
+            }
+            html.classList.remove('sidebar-visible');
+            html.classList.add("sidebar-" + sidebar);
+        </script>
+
+        <nav id="sidebar" class="sidebar" aria-label="Table of contents">
+            <div class="sidebar-scrollbox">
+                <ol class="chapter"><li class="chapter-item expanded "><a href="../../index.html"><strong aria-hidden="true">1.</strong> Intro</a></li><li class="chapter-item expanded affix "><li class="part-title">Documentation</li><li class="chapter-item expanded "><a href="../../doc/tikv/index.html"><strong aria-hidden="true">2.</strong> Transactions in TiKV</a></li><li class="chapter-item expanded "><a href="../../doc/tikv/transaction-handling-newbie-perspective/transaction-handling-newbie-perspective.html"><strong aria-hidden="true">3.</strong> Transactions handling newbiew perspective</a></li><li class="chapter-item expanded affix "><li class="part-title">Design docs</li><li class="chapter-item expanded "><a href="../../design/transaction-layer-refactoring.html"><strong aria-hidden="true">4.</strong> Proposal for refactoring how transactional commands are scheduled and implemented</a></li><li class="chapter-item expanded "><a href="../../design/async-commit/index.html"><strong aria-hidden="true">5.</strong> Async commit</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="../../design/async-commit/project-summary.html"><strong aria-hidden="true">5.1.</strong> Project summary</a></li><li class="chapter-item expanded "><a href="../../design/async-commit/initial-design.html"><strong aria-hidden="true">5.2.</strong> Initial design</a></li><li class="chapter-item expanded "><a href="../../design/async-commit/globally-non-unique-timestamps.html" class="active"><strong aria-hidden="true">5.3.</strong> Non-unique timestamps</a></li><li class="chapter-item expanded "><a href="../../design/async-commit/replica-read.html"><strong aria-hidden="true">5.4.</strong> Replica read</a></li><li class="chapter-item expanded "><a href="../../design/async-commit/parallel-commit-known-issues-and-solutions.html"><strong aria-hidden="true">5.5.</strong> Known issues</a></li></ol></li></ol>
+            </div>
+            <div id="sidebar-resize-handle" class="sidebar-resize-handle"></div>
+        </nav>
+
+        <div id="page-wrapper" class="page-wrapper">
+
+            <div class="page">
+                
+                <div id="menu-bar-hover-placeholder"></div>
+                <div id="menu-bar" class="menu-bar sticky bordered">
+                    <div class="left-buttons">
+                        <button id="sidebar-toggle" class="icon-button" type="button" title="Toggle Table of Contents" aria-label="Toggle Table of Contents" aria-controls="sidebar">
+                            <i class="fa fa-bars"></i>
+                        </button>
+                        <button id="theme-toggle" class="icon-button" type="button" title="Change theme" aria-label="Change theme" aria-haspopup="true" aria-expanded="false" aria-controls="theme-list">
+                            <i class="fa fa-paint-brush"></i>
+                        </button>
+                        <ul id="theme-list" class="theme-popup" aria-label="Themes" role="menu">
+                            <li role="none"><button role="menuitem" class="theme" id="light">Light (default)</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="rust">Rust</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="coal">Coal</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="navy">Navy</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="ayu">Ayu</button></li>
+                        </ul>
+                        
+                        <button id="search-toggle" class="icon-button" type="button" title="Search. (Shortkey: s)" aria-label="Toggle Searchbar" aria-expanded="false" aria-keyshortcuts="S" aria-controls="searchbar">
+                            <i class="fa fa-search"></i>
+                        </button>
+                        
+                    </div>
+
+                    <h1 class="menu-title">TiKV sig-transaction documentation</h1>
+
+                    <div class="right-buttons">
+                        <a href="../../print.html" title="Print this book" aria-label="Print this book">
+                            <i id="print-button" class="fa fa-print"></i>
+                        </a>
+                        
+                        <a href="https://github.com/tikv/sig-transaction" title="Git repository" aria-label="Git repository">
+                            <i id="git-repository-button" class="fa fa-github"></i>
+                        </a>
+                        
+                    </div>
+                </div>
+
+                
+                <div id="search-wrapper" class="hidden">
+                    <form id="searchbar-outer" class="searchbar-outer">
+                        <input type="search" name="search" id="searchbar" name="searchbar" placeholder="Search this book ..." aria-controls="searchresults-outer" aria-describedby="searchresults-header">
+                    </form>
+                    <div id="searchresults-outer" class="searchresults-outer hidden">
+                        <div id="searchresults-header" class="searchresults-header"></div>
+                        <ul id="searchresults">
+                        </ul>
+                    </div>
+                </div>
+                
+
+                <!-- Apply ARIA attributes after the sidebar and the sidebar toggle button are added to the DOM -->
+                <script type="text/javascript">
+                    document.getElementById('sidebar-toggle').setAttribute('aria-expanded', sidebar === 'visible');
+                    document.getElementById('sidebar').setAttribute('aria-hidden', sidebar !== 'visible');
+                    Array.from(document.querySelectorAll('#sidebar a')).forEach(function(link) {
+                        link.setAttribute('tabIndex', sidebar === 'visible' ? 0 : -1);
+                    });
+                </script>
+
+                <div id="content" class="content">
+                    <main>
+                        <h1><a class="header" href="#allow-commit_ts-to-be-non-globally-unique" id="allow-commit_ts-to-be-non-globally-unique">Allow commit_ts to be non-globally unique.</a></h1>
+<p>This document is about the problem and the solution of the non-globally-unique <code>commit_ts</code> problem.</p>
+<h2><a class="header" href="#the-problem" id="the-problem">The problem</a></h2>
+<p>In TiKV, rolling back a transaction need to leave a rollback record in order to guarantee consistency. But rollback records and commit records are both saved in Write CF, and the commit records are saved with <code>{user_key}{commit_ts}</code> <sup><a href="#footnote-star">[*]</a></sup> as the internal key, while that of rollback records are <code>{user_key}{start_ts}</code>. Previously the <code>commit_ts</code>es are timestamps allocated from PD, which is guaranteed globally unique. However when we try to use a calculated timestamp as the <code>commit_ts</code> to avoid the latency of PD's RPC, it's possible that a rollback record gets the same internal key as a commit record, but we need to keep them both.</p>
+<h2><a class="header" href="#the-solution" id="the-solution">The solution</a></h2>
+<p>The solution is to keep the commit record, but with a <code>has_overlapped_rollback</code> flag in this case to indicate that there's a rollback happened here whose <code>start_ts</code> equals to the current record's <code>commit_ts</code>. But only &quot;protected&quot; rollbacks need to set the flag. Non-protected rollback records can be dropped without introducing potential inconsistency.</p>
+<p>The solution contains two parts: 1) avoiding rollback operations overwriting commit records, and 2) avoiding commit operation overwriting rollback records.</p>
+<h3><a class="header" href="#avoiding-rollback-operations-overwriting-commit-records" id="avoiding-rollback-operations-overwriting-commit-records">Avoiding rollback operations overwriting commit records</a></h3>
+<p>To do this, when performing a protected rollback operation, check the records in write CF to see if there's already a commit record of another transaction. If so, instead of writing the rollback record, add the <code>has_overlapped_rollback</code> flag to that commit record. For example:</p>
+<ol>
+<li>Transaction <code>T1</code> (<code>start_ts = 5</code> and <code>commit_ts = 10</code>) commits on key <code>K</code>.</li>
+<li>Transaction <code>T2</code> (<code>start_ts = 10</code>) rollbacks on key <code>K</code>.</li>
+</ol>
+<p>At this time, its rollback record and <code>T1</code>'s commit record will have the same internal key <code>K_10</code> <sup><a href="#footnote-star">[*]</a></sup>. Thus if <code>T2</code> continue writing the rollback records, <code>T1</code>'s commit record will be overwritten. Instead, if we keep <code>T1</code> commit record but add a <code>has_overlapped_rollback</code> flag to it, then both <code>T1</code>'s commit information and <code>T2</code>'s rollback information can be kept.</p>
+<h3><a class="header" href="#avoiding-commit-operations-overwriting-rollback-records" id="avoiding-commit-operations-overwriting-rollback-records">Avoiding commit operations overwriting rollback records</a></h3>
+<p>It's also possible that when committing a transaction, there's already another transaction's rollback record that might be overwritten, which is not expected. An easy approach to solve this is to check whether there's a overlapping rollback record already here. But before async commit is introduced, commit operations didn't need to read Write CF, so introducing this check may significantly harm the performance. Our final solution to this case is that:</p>
+<ol>
+<li>Considering a single key, if transaction <code>T1</code>'s rollback operation happens before transaction <code>T2</code>'s prewriting, <code>T1</code> can push the <code>max_read_ts</code> which can be seen by <code>T2</code>, so <code>T2</code>'s <code>commit_ts</code> can be guaranteed to be greater than <code>T1</code>'s <code>start_ts</code>. Therefore <code>T2</code> won't overwrite <code>T1</code>'s rollback record.</li>
+<li>Considering a single key, if transaction <code>T1</code>'s rollback operation happens between <code>T2</code>'s prewriting and committing, the rollback will have no chance to affect <code>T2</code>'s <code>commit_ts</code>. In this case, <code>T1</code> can save its timestamp to <code>T2</code>'s lock. So when <code>T2</code> is committing, it can get the information of the rollback operation from the lock. If one of the recorded rollback timestamps in the lock equals to <code>T2</code>'s <code>commit_ts</code>, the <code>has_overlapped_rollback</code> flag will be set. Of course, if the <code>T1</code> finds that the lock's <code>start_ts</code> or <code>min_commit_ts</code> is greater than <code>T1</code>'s start_ts, or any other reason that implies that <code>T2</code>'s <code>commit_ts</code> is impossible to be the same as <code>T1</code>'s start_ts, then <code>T1</code> doesn't need to add the timestamp to the lock.</li>
+</ol>
+<h2><a class="header" href="#the-old-discussion-document" id="the-old-discussion-document">The old discussion document</a></h2>
+<details>
+<summary>Here is an old document that discusses about different solutions to this problem.</summary>
+<p>This is a machine translation of a <a href="https://docs.google.com/document/d/1ofa9zYdb0-UmFu-uDHDLft2-G4s2SI2TJRErNRDH7O0/edit#">Chinese document</a> by @MyonKeminta.</p>
+<h1><a class="header" href="#allow-commit_ts-to-be-non-globally-unique-1" id="allow-commit_ts-to-be-non-globally-unique-1">Allow commit_ts to be non-globally unique.</a></h1>
+<h2><a class="header" href="#background" id="background">background</a></h2>
+<p>In our current implementation, both the start_ts and commit_ts of a transaction come from the PD and the big transactions we are currently doing and the single Region transactions we will continue to do. Both 1PC and Parallel Commit will cause commit_ts to be no longer global The only. Thus, in order to continue the work described above, many of the corner cases that we once did not need to deal with now need to have their behavior harmonized. Any case not covered by the test needs to be covered.
+(None of the above optimizations will result in start_ts and commit_ts being equal for the same transaction)</p>
+<h2><a class="header" href="#behavior-while-reading-and-writing" id="behavior-while-reading-and-writing">Behavior while reading and writing</a></h2>
+<h3><a class="header" href="#read" id="read">read</a></h3>
+<p>It's the question of whether a commit record is visible to a transaction with start_ts = T when it reads a commit record with commit_ts = T.
+Here you can define T as start_ts/for_update_ts &gt; T as commit_ts, i.e. the data for commit_ts = T is visible to the transaction for which start_ts = T.</p>
+<h3><a class="header" href="#write" id="write">write</a></h3>
+<p>Also under the definition of T as start_ts &gt; T as commit_ts, a The write transaction for start_ts = T encounters a commit record for commit_ts for T ( The lock can be successfully applied when (not Rollback). Because its commit_ts must be greater than start_ts, it can be compared to the commit record of the previous transaction. Coexistence. However, if you encounter a write record with the same timestamp that is not a transaction commit, but a Rollback record, then this write should fail.</p>
+<p>In fact it would be simpler to simply disallow the locking in the above case, just as the current logic is, without change. The only advantage of the above is that it reduces some WriteConflict.</p>
+<p>(Note: Now on a pessimistic lock, if the commit_ts of the existing commit record are the same as the current for_update_ts, then it is allowed to lock successfully)</p>
+<h3><a class="header" href="#commit-commit-conflict" id="commit-commit-conflict">commit-commit conflict</a></h3>
+<p>It is possible two transactions have the same <code>commit_ts</code>. It's easy to imagine one transaction gets a <code>commit_ts</code> as <code>max(max_read_ts) + 1</code> and another gets that timestamp from PD. This is fine as long as the two transactions don't meet. If the two transactions try to write the same key, then there would be two competing values for any reads after that <code>commit_ts</code> (TiKV could not write both values into the write CF, but this is a technicality, the more fundamental problem is that there is no way for TiKV to judge which value is most recent). However, due to locking this cannot occur (depending on how the non-unique timestamps occur, it also might not be possible to create such a situation).</p>
+<h2><a class="header" href="#problems-with-write-cfs-rollback-logs" id="problems-with-write-cfs-rollback-logs">Problems with Write CF's Rollback logs</a></h2>
+<p>The format of the Write CF key is {encoded_key}{commit_ts }, but it's different for Rollback-type records: a Rollback dropped transaction has no commit_ts, which has start_ts appended to the end of its key, so there could be something like this Phenomena.</p>
+<ul>
+<li>Transaction 1: start_ts = 10, commit_ts = 11</li>
+<li>Transaction 2: start_ts = 11, Rollback</li>
+</ul>
+<p>In this case, transaction 2 may overwrite transaction 1's commit record when Write CF writes the rollback record, resulting in the loss of the data committed by transaction 1.</p>
+<h3><a class="header" href="#solution-1-write-priority" id="solution-1-write-priority">Solution 1: Write Priority</a></h3>
+<p>At TiKV's transaction level, before writing a rollback, it is checked whether there is already another commit record equivalent to ts and if so, no more rollbacks are written; writing other commit records is allowed to overwrite the rollback record.</p>
+<p>Disadvantages:</p>
+<ul>
+<li>Rollback requires an additional read operation, potentially causing a performance regression.</li>
+<li>Unable to block requests for pessimistic transactions that arrive late. This situation, once it arises on the primary key of a pessimistic transaction, may cause the pessimistic transaction to be correct. Impact. I think this can be addressed by treating a write with the same commit ts but different start ts as a rollback.</li>
+</ul>
+<h3><a class="header" href="#solution-2-rollback-cf" id="solution-2-rollback-cf">Solution 2: Rollback CF</a></h3>
+<p>Separate the Rollback into a new CF. The downside is that the amount of work involved in such a change can be very high and compatibility issues need to be properly addressed. Also, this solution can help with another problem: https://docs.google.com/document/d/1suX8QQjI_eWc1PxI52vFWBBM9ajkRQxGNbAr_svypRo/edit?ts=5d91a36a#</p>
+<p>This programme is being prepared for implementation. Related documents: https://docs.google.com/document/d/1SB4M19Xkv6zpZN4cbX6QlHJPtlB66VOJXuzL0ewx94w/edit#</p>
+<h3><a class="header" href="#solution-3-rollback-flag" id="solution-3-rollback-flag">Solution 3: Rollback Flag</a></h3>
+<p>When a Rollback is found to collide with another Write record, the Rollback is treated as a A flag bit is added to the Write record with which the collision occurs, causing the Rollback information to collide with the transaction commit. Records coexist. As with Scenario 1, there is additional overhead and it is not very elegant to implement, but it solves a problem that has an impact on pessimistic matters. Question.</p>
+<h3><a class="header" href="#solution-4-staggered-ts" id="solution-4-staggered-ts">Solution 4: Staggered ts</a></h3>
+<p>Modify the ts assignment logic so that start_ts is all odd commit_ts is all even. The downside is that it is too ungainly.</p>
+<p>The current preference is for the Rollback CF solution, as this would incidentally solve a number of other problems:</p>
+<ul>
+<li>Problems with Rollback records and Lock records affecting query performance (if Lock-type Write records are also placed in the new CF).</li>
+<li>collapse rollback Issues that affect the validity of pessimistic matters in extreme cases.</li>
+<li>It's also part of the job to split write cf for latest and history.</li>
+</ul>
+<h3><a class="header" href="#solution-5-max_ts" id="solution-5-max_ts">Solution 5: max_ts</a></h3>
+<p>Rather than maintaining <code>max_read_ts</code>, we maintain <code>max_ts</code> which is updated with every timestamp the TiKV node sees (i.e., every prewrite's <code>start_ts</code> and updated with every <code>commit_ts</code> when a transaction is committed).</p>
+<h3><a class="header" href="#solution-6-extend-the-timestamp-format" id="solution-6-extend-the-timestamp-format">Solution 6: Extend the timestamp format</a></h3>
+<p>New timestamps are 128 bits. The first 64 are a local timestamp, the remaining 64 contain a specification version number for forward compatibility and a node identifier to identify the node that generated the timestamp. PD has the unique node id <code>0</code>. Old timestamps are considered equivalent to a new timestamp with <code>0</code> node id.</p>
+<p>Each node maintains a local timestamp counter in the manner of a Lamport Clock. This value is sent to other nodes including PD with every message (or most messages). The ordering of the local timestamp only has the property that if event <code>a</code> observably precedes event <code>b</code>, then <code>ts(a) &lt; ts(b)</code>. However, local timestamps are not globally unique and the inverse of the previous property is not true. Two timestamps with the same node id do provide the inverse property and all timestamps with the same node id gives a linear total order.</p>
+<p>The entire timestamp is globally unique and gives a total ordering over timestamps. However, it is not linear in that it does not strictly match the ordering due to real time.</p>
+<p>This solution easily solves the issue of write and rollback entries in the write CF. It also improves efficiency since to get a new timestamp, a node does not need to send a message to PD, it can use its local 'clock'.</p>
+<p>However, it means we lose strict linearizability because the order of writes may not exactly match their real time ordering.</p>
+<p>This solution is amenable to configuration, since if the node id is always 0, then we have the same properties as we do currently.</p>
+<p>TODO - how does this interact with tools which require unique timestamps?</p>
+</details>
+<hr />
+<p><sup id="footnote-star">[*]: It's not the accurate format of the key, but just representing that the key is composed by the user key and the timestamp.</sup></p>
+
+                    </main>
+
+                    <nav class="nav-wrapper" aria-label="Page navigation">
+                        <!-- Mobile navigation buttons -->
+                        
+                            <a rel="prev" href="../../design/async-commit/initial-design.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                                <i class="fa fa-angle-left"></i>
+                            </a>
+                        
+
+                        
+                            <a rel="next" href="../../design/async-commit/replica-read.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                                <i class="fa fa-angle-right"></i>
+                            </a>
+                        
+
+                        <div style="clear: both"></div>
+                    </nav>
+                </div>
+            </div>
+
+            <nav class="nav-wide-wrapper" aria-label="Page navigation">
+                
+                    <a rel="prev" href="../../design/async-commit/initial-design.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                        <i class="fa fa-angle-left"></i>
+                    </a>
+                
+
+                
+                    <a rel="next" href="../../design/async-commit/replica-read.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                        <i class="fa fa-angle-right"></i>
+                    </a>
+                
+            </nav>
+
+        </div>
+
+        
+
+        
+
+        
+
+        
+        <script type="text/javascript">
+            window.playground_copyable = true;
+        </script>
+        
+
+        
+
+        
+        <script src="../../elasticlunr.min.js" type="text/javascript" charset="utf-8"></script>
+        <script src="../../mark.min.js" type="text/javascript" charset="utf-8"></script>
+        <script src="../../searcher.js" type="text/javascript" charset="utf-8"></script>
+        
+
+        <script src="../../clipboard.min.js" type="text/javascript" charset="utf-8"></script>
+        <script src="../../highlight.js" type="text/javascript" charset="utf-8"></script>
+        <script src="../../book.js" type="text/javascript" charset="utf-8"></script>
+
+        <!-- Custom JS scripts -->
+        
+
+        
+
+    </body>
+</html>

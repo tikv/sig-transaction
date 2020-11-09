@@ -1,0 +1,363 @@
+<!DOCTYPE HTML>
+<html lang="en" class="sidebar-visible no-js light">
+    <head>
+        <!-- Book generated using mdBook -->
+        <meta charset="UTF-8">
+        <title>Proposal for refactoring how transactional commands are scheduled and implemented - TiKV sig-transaction documentation</title>
+        
+        
+
+
+        <!-- Custom HTML head -->
+        
+
+
+        <meta content="text/html; charset=utf-8" http-equiv="Content-Type">
+        <meta name="description" content="Documentation of distributed transactions in TiDB and TiKV. Includes some coverage of general distributed transaction topics.">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta name="theme-color" content="#ffffff" />
+
+        <link rel="icon" href="../favicon.svg">
+        <link rel="shortcut icon" href="../favicon.png">
+        <link rel="stylesheet" href="../css/variables.css">
+        <link rel="stylesheet" href="../css/general.css">
+        <link rel="stylesheet" href="../css/chrome.css">
+        <link rel="stylesheet" href="../css/print.css" media="print">
+
+        <!-- Fonts -->
+        <link rel="stylesheet" href="../FontAwesome/css/font-awesome.css">
+        
+        <link rel="stylesheet" href="../fonts/fonts.css">
+        
+
+        <!-- Highlight.js Stylesheets -->
+        <link rel="stylesheet" href="../highlight.css">
+        <link rel="stylesheet" href="../tomorrow-night.css">
+        <link rel="stylesheet" href="../ayu-highlight.css">
+
+        <!-- Custom theme stylesheets -->
+        
+
+        
+    </head>
+    <body>
+        <!-- Provide site root to javascript -->
+        <script type="text/javascript">
+            var path_to_root = "../";
+            var default_theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? "navy" : "light";
+        </script>
+
+        <!-- Work around some values being stored in localStorage wrapped in quotes -->
+        <script type="text/javascript">
+            try {
+                var theme = localStorage.getItem('mdbook-theme');
+                var sidebar = localStorage.getItem('mdbook-sidebar');
+
+                if (theme.startsWith('"') && theme.endsWith('"')) {
+                    localStorage.setItem('mdbook-theme', theme.slice(1, theme.length - 1));
+                }
+
+                if (sidebar.startsWith('"') && sidebar.endsWith('"')) {
+                    localStorage.setItem('mdbook-sidebar', sidebar.slice(1, sidebar.length - 1));
+                }
+            } catch (e) { }
+        </script>
+
+        <!-- Set the theme before any content is loaded, prevents flash -->
+        <script type="text/javascript">
+            var theme;
+            try { theme = localStorage.getItem('mdbook-theme'); } catch(e) { }
+            if (theme === null || theme === undefined) { theme = default_theme; }
+            var html = document.querySelector('html');
+            html.classList.remove('no-js')
+            html.classList.remove('light')
+            html.classList.add(theme);
+            html.classList.add('js');
+        </script>
+
+        <!-- Hide / unhide sidebar before it is displayed -->
+        <script type="text/javascript">
+            var html = document.querySelector('html');
+            var sidebar = 'hidden';
+            if (document.body.clientWidth >= 1080) {
+                try { sidebar = localStorage.getItem('mdbook-sidebar'); } catch(e) { }
+                sidebar = sidebar || 'visible';
+            }
+            html.classList.remove('sidebar-visible');
+            html.classList.add("sidebar-" + sidebar);
+        </script>
+
+        <nav id="sidebar" class="sidebar" aria-label="Table of contents">
+            <div class="sidebar-scrollbox">
+                <ol class="chapter"><li class="chapter-item expanded "><a href="../index.html"><strong aria-hidden="true">1.</strong> Intro</a></li><li class="chapter-item expanded affix "><li class="part-title">Documentation</li><li class="chapter-item expanded "><a href="../doc/tikv/index.html"><strong aria-hidden="true">2.</strong> Transactions in TiKV</a></li><li class="chapter-item expanded "><a href="../doc/tikv/transaction-handling-newbie-perspective/transaction-handling-newbie-perspective.html"><strong aria-hidden="true">3.</strong> Transactions handling newbiew perspective</a></li><li class="chapter-item expanded affix "><li class="part-title">Design docs</li><li class="chapter-item expanded "><a href="../design/transaction-layer-refactoring.html" class="active"><strong aria-hidden="true">4.</strong> Proposal for refactoring how transactional commands are scheduled and implemented</a></li><li class="chapter-item expanded "><a href="../design/async-commit/index.html"><strong aria-hidden="true">5.</strong> Async commit</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="../design/async-commit/project-summary.html"><strong aria-hidden="true">5.1.</strong> Project summary</a></li><li class="chapter-item expanded "><a href="../design/async-commit/initial-design.html"><strong aria-hidden="true">5.2.</strong> Initial design</a></li><li class="chapter-item expanded "><a href="../design/async-commit/globally-non-unique-timestamps.html"><strong aria-hidden="true">5.3.</strong> Non-unique timestamps</a></li><li class="chapter-item expanded "><a href="../design/async-commit/replica-read.html"><strong aria-hidden="true">5.4.</strong> Replica read</a></li><li class="chapter-item expanded "><a href="../design/async-commit/parallel-commit-known-issues-and-solutions.html"><strong aria-hidden="true">5.5.</strong> Known issues</a></li></ol></li></ol>
+            </div>
+            <div id="sidebar-resize-handle" class="sidebar-resize-handle"></div>
+        </nav>
+
+        <div id="page-wrapper" class="page-wrapper">
+
+            <div class="page">
+                
+                <div id="menu-bar-hover-placeholder"></div>
+                <div id="menu-bar" class="menu-bar sticky bordered">
+                    <div class="left-buttons">
+                        <button id="sidebar-toggle" class="icon-button" type="button" title="Toggle Table of Contents" aria-label="Toggle Table of Contents" aria-controls="sidebar">
+                            <i class="fa fa-bars"></i>
+                        </button>
+                        <button id="theme-toggle" class="icon-button" type="button" title="Change theme" aria-label="Change theme" aria-haspopup="true" aria-expanded="false" aria-controls="theme-list">
+                            <i class="fa fa-paint-brush"></i>
+                        </button>
+                        <ul id="theme-list" class="theme-popup" aria-label="Themes" role="menu">
+                            <li role="none"><button role="menuitem" class="theme" id="light">Light (default)</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="rust">Rust</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="coal">Coal</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="navy">Navy</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="ayu">Ayu</button></li>
+                        </ul>
+                        
+                        <button id="search-toggle" class="icon-button" type="button" title="Search. (Shortkey: s)" aria-label="Toggle Searchbar" aria-expanded="false" aria-keyshortcuts="S" aria-controls="searchbar">
+                            <i class="fa fa-search"></i>
+                        </button>
+                        
+                    </div>
+
+                    <h1 class="menu-title">TiKV sig-transaction documentation</h1>
+
+                    <div class="right-buttons">
+                        <a href="../print.html" title="Print this book" aria-label="Print this book">
+                            <i id="print-button" class="fa fa-print"></i>
+                        </a>
+                        
+                        <a href="https://github.com/tikv/sig-transaction" title="Git repository" aria-label="Git repository">
+                            <i id="git-repository-button" class="fa fa-github"></i>
+                        </a>
+                        
+                    </div>
+                </div>
+
+                
+                <div id="search-wrapper" class="hidden">
+                    <form id="searchbar-outer" class="searchbar-outer">
+                        <input type="search" name="search" id="searchbar" name="searchbar" placeholder="Search this book ..." aria-controls="searchresults-outer" aria-describedby="searchresults-header">
+                    </form>
+                    <div id="searchresults-outer" class="searchresults-outer hidden">
+                        <div id="searchresults-header" class="searchresults-header"></div>
+                        <ul id="searchresults">
+                        </ul>
+                    </div>
+                </div>
+                
+
+                <!-- Apply ARIA attributes after the sidebar and the sidebar toggle button are added to the DOM -->
+                <script type="text/javascript">
+                    document.getElementById('sidebar-toggle').setAttribute('aria-expanded', sidebar === 'visible');
+                    document.getElementById('sidebar').setAttribute('aria-hidden', sidebar !== 'visible');
+                    Array.from(document.querySelectorAll('#sidebar a')).forEach(function(link) {
+                        link.setAttribute('tabIndex', sidebar === 'visible' ? 0 : -1);
+                    });
+                </script>
+
+                <div id="content" class="content">
+                    <main>
+                        <h1><a class="header" href="#transaction-layer-refactoring" id="transaction-layer-refactoring">Transaction Layer Refactoring</a></h1>
+<h2><a class="header" href="#motivation" id="motivation">Motivation</a></h2>
+<p>At the very beginning, all transactional commands in TiKV share common procedures:</p>
+<ol>
+<li>Acquire latches</li>
+<li>Check constraints and generate modifications</li>
+<li>Apply modifications to the raft store</li>
+<li>Reply to RPC and release the latches</li>
+</ol>
+<p>After the latches and the snapshot are acquired, all the commands depend on nothing else, so we needn't care about passing dependencies in deeply.</p>
+<p>So the current implementation structure is natural and great: different commands are wrapped as enum variants and go through the whole process. In each step we match the type of command and do specific work.</p>
+<p>However, as more commands and optimizations are added, this is not always the case. Some commands breaks the procedure and adds dependencies.</p>
+<p>For example, the &quot;pipelined pessimistic lock&quot; replies before the raft store finishes replication, which is not following the common procedure. Also, when an <code>AcquirePessimisticLock</code> command meets a lock, it needs to wait for the lock being released in TiKV for a while. And when a lock is released, the awaiting <code>AcquirePessimisticLock</code> commands are notified. These are distinctive steps that are not shared by other commands. More dependencies (the lock manager and the deadlock detector) are also introduced.</p>
+<p>If more and more commands are not sharing the same procedure and dependencies, the current structure will have no benefit. Instead, the drawbacks become clearer.</p>
+<p>The code for a certain command is spread in too many files. Each function handles a part of work of various commands. People are hard to understand what happens about a single command.</p>
+<p>And now, different commands have different dependencies. But because all commands share the same procedure, we must pass in the union of all dependencies of all commands. It makes adding commands and dependencies more difficult.</p>
+<h2><a class="header" href="#new-structure" id="new-structure">New structure</a></h2>
+<p>Based on the analysis above, the current structure is not flexible enough and should be dropped. Instead, we can change to put logic of a single command together. Common steps can be extracted as methods for reuse. Then, it will be much easier to find out the procedure of each command while still not repeating code.</p>
+<p>Steps like acquiring latches and waiting for raft replication cannot finish immediately, so it is appropriate to make every command an <code>async fn</code>.</p>
+<p>For example, the <code>AcquirePessimisticLock</code> command can be like:</p>
+<pre><pre class="playground"><code class="language-rust edition2018">
+<span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>async fn acquire_pessimistic_lock(&amp;self, req: PessimisticLockRequest) -&gt; PessimisticLockResponse {
+    let mut resp = PessimisticLockResponse::default();
+    let guards = self.lock_keys(req.mutations.iter().map(|m| m.get_key())).await;
+    let snapshot = self.get_snapshot(req.get_context()).await;
+    
+    let mut txn = MvccTxn::new(...);
+    let mut locked = None;
+    for (mutation, guard) in req.mutations.into_iter().zip(&amp;guards) {
+        match txn.acquire_pessimistic_lock(...) {
+            Ok(...) =&gt; ...,
+            Err(KeyIsLocked(lock_info)) =&gt; {
+                guard.set_lock(lock_info.clone());
+                let lock_released = guard.lock_released(); // returns a future which is ready when the lock is released
+                locked = Some(lock_info, );
+            },
+            Err(e) =&gt; ...
+        }
+    }
+    
+    if let Some((lock_info, lock_released)) = locked {
+        drop(guards); // release the latches first
+        lock_released.await; // easy to add timeout
+        resp.set_errors(...);
+    } else {
+        if self.cfg.pipelined_pessimistic_lock {
+            // write to the raft store asynchronously
+            let engine = self.engine.clone();
+            self.spawn(async move {
+                engine.write(txn.into_modifies()).await;
+                drop(guards);
+            });
+        } else {
+            // write to the raft store synchronously
+            self.engine.write(txn.into_modifies()).await; 
+        }
+        ...
+    }
+    resp
+}
+<span class="boring">}
+</span></code></pre></pre>
+<p>The goal is to put the whole process of each command inside a single function. Then, people only need to look at one function to learn the process. Code related to transactions will be more understandable.</p>
+<p>Moreover, long code paths and jumps are avoided. It's never a problem that dependencies and configurations need be passed through the long path.</p>
+<h2><a class="header" href="#in-memory-lock-table" id="in-memory-lock-table">In-memory lock table</a></h2>
+<p>Both the latch and the lock manager stores memory locks and notify when the locks are released. For &quot;async commit&quot;, we also need another memory locking mechanism. It'll be good to have an integrated locking mechanism handling all these requirements.</p>
+<p>We can use a concurrent ordered map to build a lock table. We map each encoded key to a memory lock. The memory lock contains lock information and waiting lists. Currently we have two kinds of orthogonal waiting list: the latch waiting list and the pessimistic lock waiting list. </p>
+<pre><pre class="playground"><code class="language-rust edition2018">
+<span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>pub type LockTable = ConcurrentOrderedMap&lt;Key, Arc&lt;MemoryLock&gt;&gt;;
+
+pub struct MemoryLock {
+    mutex_state: AtomicU64,
+    mutex_waiters: ConcurrentList&lt;Notify&gt;
+    lock_info: Mutex&lt;Option&lt;LockInfo&gt;&gt;,
+    pessimistic_waiters: ConcurrentList&lt;Notify&gt;,
+}
+<span class="boring">}
+</span></code></pre></pre>
+<p>Both the original latches and lock manager can be implemented with this memory lock.</p>
+<p>For the original latch usage, the lock serves as an asynchronous mutex. It can return a future that outputs a guard. The guard can be used to modify the data in the memory lock. When the guard is dropped, other tasks waiting for the lock are notified.</p>
+<p>For the lock manager usage, it provides the functionality to add waiters and modify the lock information. When <code>AcquirePessimisticLock</code> meets a lock, it adds itself to the waiting list and stores the lock information. When the lock is cleared, the waiters are all notified.</p>
+<p>When a guard is dropped, if neither a lock nor any waiter is in the lock, we can remove the key from the map to save memory.</p>
+<h3><a class="header" href="#async-commit" id="async-commit">Async commit</a></h3>
+<p>The &quot;async commit&quot; feature can be also implemented with this lock table. During prewrite, the lock is written to the memory lock before it is sent to the raft store. Before any read request start, we read the lock info in the memory lock. If the <code>min_commit_ts</code> recorded in the lock is smaller than the snapshot time stamp, we can return a locked error directly.</p>
+<pre><pre class="playground"><code class="language-rust edition2018">
+<span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>async fn prewrite(&amp;self, req: PrewriteRequest) -&gt; PrewriteResponse {
+    ...
+    for (lock, guard) in ... {
+        // read max_read_ts and set lock atomically
+        guard.set_lock(lock, |lock| lock.min_commit_ts = self.max_read_ts() + 1);
+    }
+    ...
+}
+
+async fn get(&amp;self, req: GetRequest) -&gt; GetResponse {
+    ...
+    if let Err(lock) = self.read_check_key(req.get_key(), req.version.into()) {
+        ...
+    }
+    ...
+}
+
+fn read_check_key(&amp;self, key: &amp;Key, ts: TimeStamp) -&gt; Result&lt;(), LockInfo&gt; {
+    self.update_max_read_ts(ts);
+    if let Some(lock) = self.lock_table.get(key) {
+        let lock_info = lock.lock_info.lock().unwrap();
+        if ... {
+            return Err(lock_info.clone());
+        }
+    }
+    Ok(())
+}
+
+fn read_check_range(&amp;self, start_key: &amp;Key, end_key: &amp;Key, ts: TimeStamp) -&gt; Result&lt;(), LockInfo&gt; {
+    self.update_max_read_ts(ts);
+    if let Some((key, lock)) = self.lock_table.lower_bound(start_key) {
+        if key &lt; end_key {
+            let lock_info = lock.lock_info.lock().unwrap();
+            if ... {
+                return Err(lock_info.clone());
+            }
+        }
+    }
+    Ok(())
+}
+<span class="boring">}
+</span></code></pre></pre>
+
+                    </main>
+
+                    <nav class="nav-wrapper" aria-label="Page navigation">
+                        <!-- Mobile navigation buttons -->
+                        
+                            <a rel="prev" href="../doc/tikv/transaction-handling-newbie-perspective/transaction-handling-newbie-perspective.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                                <i class="fa fa-angle-left"></i>
+                            </a>
+                        
+
+                        
+                            <a rel="next" href="../design/async-commit/index.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                                <i class="fa fa-angle-right"></i>
+                            </a>
+                        
+
+                        <div style="clear: both"></div>
+                    </nav>
+                </div>
+            </div>
+
+            <nav class="nav-wide-wrapper" aria-label="Page navigation">
+                
+                    <a rel="prev" href="../doc/tikv/transaction-handling-newbie-perspective/transaction-handling-newbie-perspective.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                        <i class="fa fa-angle-left"></i>
+                    </a>
+                
+
+                
+                    <a rel="next" href="../design/async-commit/index.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                        <i class="fa fa-angle-right"></i>
+                    </a>
+                
+            </nav>
+
+        </div>
+
+        
+
+        
+
+        
+
+        
+        <script type="text/javascript">
+            window.playground_copyable = true;
+        </script>
+        
+
+        
+
+        
+        <script src="../elasticlunr.min.js" type="text/javascript" charset="utf-8"></script>
+        <script src="../mark.min.js" type="text/javascript" charset="utf-8"></script>
+        <script src="../searcher.js" type="text/javascript" charset="utf-8"></script>
+        
+
+        <script src="../clipboard.min.js" type="text/javascript" charset="utf-8"></script>
+        <script src="../highlight.js" type="text/javascript" charset="utf-8"></script>
+        <script src="../book.js" type="text/javascript" charset="utf-8"></script>
+
+        <!-- Custom JS scripts -->
+        
+
+        
+
+    </body>
+</html>
