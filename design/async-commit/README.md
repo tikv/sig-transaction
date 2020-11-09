@@ -162,7 +162,7 @@ Crdb mentioned two ways to reduce the impact of recovery, and TiDB has also impl
 
 ### Cockroach DB
 
-In CRDB, async commit extends pipelined pessimistic locking.
+In CRDB, parallel commit extends pipelined pessimistic locking.
 
 crdb's transaction model is similar to TiDB in that both are inspired by percolator, but the crdb is a pessimistic transaction, every DML writes write intents, and they have many optimizations such as pipeline consensus write to reduce latency (which can also be used for pessimistic transactions). ), remain at 2PC until all write intents are written successfully on transaction commit. and update the transaction record (similar to primary key) to COMMITTED, and then returns success to the client after success.
 
