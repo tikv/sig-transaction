@@ -54,7 +54,15 @@ Read more:
 
 ## MVCC
 
-TODO
+TiKV supports storing multiple values for a database key. Suitably coded clients can use this mechanism to implement both optimistic and pessimistic transactions (Multi Versioned Concurrency Control). Whenever TiKV stores a row key, it concatenates the raw bytes of the key with a 64-bit timestamp value. Thus, the row key has the logical format key:timestamp1, key:timestamp2 and so on for its different versions. Helper functions exist to affix the timestamp to a given raw key, and to extract only the raw key from a versioned key.
+
+*Optimistic transactions*: At the beginning of an optimistic transaction, a start timestamp (start_ts) is generated. When reading data, the transaction will only scan keys whose timestamp component is less than start_ts. This ensures that only data committed before the beginning of the transaction is read. At the end of the transaction, a commit timestamp (commit_ts) is generated. All writes made by the transaction will have this same commit_ts affixed to the raw key. The transaction will abort during write if any of the keys being written are found to be already present in the database with version > commit_ts.
+
+TODO: Some important pieces of code to read regarding optimistic transactions are.. 
+
+*Pessimistic transactions*: Similar to the above, a timestamp (called for_update_ts) is obtained at the beginning of the transaction. When reading data, the transaction will first attempt to lock each key that it reads, provided the key does not already have a version with timestamp > for_update_ts. If it does, a write-conflict error is returned. Otherwise, the key is locked by the current transaction. At the end of the transaction, a commit timestamp is obtained and used for the writes, just as with optimistic transactions.
+
+TODO: Some important pieces of code to read regarding pessimistic transactions are..
 
 ## Consistency and isolation properties
 
