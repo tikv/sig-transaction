@@ -1,0 +1,15 @@
+# Weekly meeting
+
+**2020-11-20**
+
+Chair: @ekexium 
+
+## New features
+
+* Async commit
+  * Implement fallback from async commit and 1PC: https://github.com/pingcap/tidb/pull/21091
+  
+## Test & Bugfix
+* Add some more tests for overlapping timestamps: https://github.com/tikv/tikv/pull/9067
+ 
+## Others
