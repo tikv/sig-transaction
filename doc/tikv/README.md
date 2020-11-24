@@ -52,9 +52,9 @@ Read more:
 
 * [blog post](https://pingcap.com/blog/pessimistic-locking-better-mysql-compatibility-fewer-rollbacks-under-high-load/)
 
-## MVCC
+## Multi-Version Concurrency Control (MVCC)
 
-TiKV supports storing multiple values for a database key. Suitably coded clients can use this mechanism to implement both optimistic and pessimistic transactions (Multi Versioned Concurrency Control). Whenever TiKV stores a row key, it concatenates the raw bytes of the key with a 64-bit timestamp value. Thus, the row key has the logical format key:timestamp1, key:timestamp2 and so on for its different versions. Helper functions exist to affix the timestamp to a given raw key, and to extract only the raw key from a versioned key.
+TiKV supports storing multiple values for a single database row key. Whenever TiKV stores a row key, it concatenates the raw bytes of the key with a 64-bit timestamp value. Thus, the row key has the logical format `key,timestamp1`, `key,timestamp2` and so on for its different versions. Helper functions exist in the [txn_types](https://github.com/tikv/tikv/blob/master/components/txn_types/src/types.rs) module to affix the timestamp to a given raw key, to extract only the timestamp from a versioned key and so on. This mechanism is what enables TiKV to support MVCC when co-operating clients make use of its transaction APIs such as `get()` or `get_for_update()`. Both optimistic and pessimistic transactions are supported.
 
 *Optimistic transactions*: At the beginning of an optimistic transaction, a start timestamp (start_ts) is generated. When reading data, the transaction will only scan keys whose timestamp component is less than start_ts. This ensures that only data committed before the beginning of the transaction is read. At the end of the transaction, a commit timestamp (commit_ts) is generated. All writes made by the transaction will have this same commit_ts affixed to the raw key. The transaction will abort during write if any of the keys being written are found to be already present in the database with version > commit_ts.
 
