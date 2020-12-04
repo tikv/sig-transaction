@@ -1,6 +1,6 @@
 # SIG-transaction
 
-[Rendered version (Recommended)](https://tikv.github.io/sig-transaction/)
+[Rendered version](https://tikv.github.io/sig-transaction/) (Recommended)
 
 The transactions special interest group (SIG-transaction) are a group of people interested in transactions in distributed databases. We have a focus on transactions in **TiKV and TiKV clients** (including TiDB, which use TiKV go-client), but discuss academic work and other implementations too.
 
