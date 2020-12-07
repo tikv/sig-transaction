@@ -68,7 +68,7 @@ message LockInfo {
 
 Implemented in TiDB, TiSpark.
 
-The client has configuration for supporting async commit (`tikv-client.async-commit.enable`), supporting 1pc (`enable-one-pc`), forcing external consistency when using async commit (`external-consistency`), and limits on the size (`tikv-client.async-commit.total-key-size-limit`) and number of keys (`tikv-client.async-commit.keys-limit`) in an async commit transaction. When async commit is enabled, a transaction will not use async commit if it exceeds either of the size limits.
+The client has system variables for supporting async commit (`tidb_enable_async_commit`), supporting 1pc (`tidb_enable_1pc`), and forcing external consistency when using async commit (`tidb_guarantee_external_consistency`). The client has configuration options for setting the limits on the size (`tikv-client.async-commit.total-key-size-limit`) and number of keys (`tikv-client.async-commit.keys-limit`) in an async commit transaction. When async commit is enabled, a transaction will not use async commit if it exceeds either of the size limits.
 
 TODO prewrite and commit
 
@@ -92,7 +92,7 @@ If `max_ts` has become out of date (due to some change to the region topology), 
 
 The server iterates over all keys in the request. If a key is locked for async commit by the current transaction, and it is no longer an async commit transaction, then the lock can be overwritten. Each key is locked; for 1pc the lock is kept privately in memory, for 2pc the lock is written to storage. In either case the lock is also kept in memory by the concurrency manager. These in-memory locks are used to block reading while the transaction is live.
 
-The `min_commit_ts` for the key is calculated as the maximum of the transaction's start ts, `for_update_ts`, and `min_commit_ts`, and the `max_ts` of the store. The `min_commit_ts` is written to the lock. The largest `min_commit_ts` of all keys is returned to the client.
+The `min_commit_ts` for the key is calculated as the maximum of the transaction's `start_ts + 1`, `for_update_ts + 1`, and `min_commit_ts`, and the `max_ts + 1` of the store. The `min_commit_ts` is written to the lock. The largest `min_commit_ts` of all keys is returned to the client.
 
 Finally, if this is a 1pc transaction, then all writes are committed and any locks are released.
     
