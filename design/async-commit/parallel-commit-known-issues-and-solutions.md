@@ -125,3 +125,86 @@ Note: If we are using `max_read_ts + 1` to commit instead of `max_ts + 1`, it's 
 The existing 2pc process checks the schema version before issue the final commit command, if we do async commit, we don't have a chance to check the schema version. If it has changed, we may break the index/row consistency.
 
 **TODO: This issue is still to be discussed.**
+
+# Historic issues taken from README.md
+
+### Commit timestamp
+
+See [parallel-commit-known-issues-and-solutions.md](globally-non-unique-timestamps.md) for discussion.
+
+In the happy path, there is no problem. However, if the finalise message is lost then when we resolve the lock and the transaction needs committing, then we need to provide a commit timestamp. Unfortunately it seems there is no good answer for what ts to use.
+
+Consider the following example: transaction 1 with start_ts = 1, prewrite @ ts=2, finalise @ ts=4. Transaction 2 makes a non-locking read at ts = 3. If all goes well, this is fine: the transaction is committed by receiving the finalise message with commit_ts = 4. If the read arrives before commit, it finds the key locked and blocks. After the commit it will read the earlier value since its ts is < the commit ts.
+
+However, if the finalise message is lost, then we must initiate a 'resolve lock' once the lock times out. There are some options; bad ideas:
+
+* Use the prewrite ts: this is unsound because the ts is less than the read's ts and so the read will see different values for the key depending on whether it arrives before or after the commit happening, even though its ts is > than the commit ts. That violates the Read Committed property.
+* Transaction 2 returns an error to TiDB and TiDB gets a new ts from PD and uses that as the commit_ts for the resolve lock request. This has the disadvantage that non-locking reads can block and then fail, and require the reader to resolve locks. This timestamp is also later than the timestamp that transaction 1's client thinks it is, which can lead to RC violation.
+* Get a new ts from PD. This has the problem that TiDB may have reported the transaction as committed at an earlier times stamp to the user, which can lead to RC violation.
+
+Possibly good ideas:
+
+* Record the 'max read ts' for each key. E.g., when the read arrives, we record 3 as the max_read_ts (as long as there is no hight read timestamp). We can then use `max_read_ts + 1` as the commit ts. However, that means that timestamps are no longer unique. It's unclear how much of a problem that is. If it is implemented on disk, then it would increase latency of reads intolerably. If it is implemented in memory it could use a lot of memory and we'd need to handle recovery somehow (we could save memory by storing only a per-node or per-region max read ts).
+* Use a hybrid logical clock (HLC) for timestamps. In this way we can enforce causal consistency rather than linearisability. In effect, the ordering of timestamps becomes partial and if the finalise message is lost then we cannot compare transaction 1's timestamps with transaction 2's timestamps without further resolution. Since this would require changing timestamps everywhere, it would be *a lot* of work. Its also not clear exactly how this would be implemented and how this would affect transaction 2. Seems like at the least, non-locking reads would block.
+
+
+In order to guarantee SI, `commit_ts` of T1 needs to satisfy:
+
+* It is larger than the `start_ts` of any other transaction which has read the old value of a key written by T1.
+* It is smaller than the `start_ts` of any other transaction which reads the new value of any key written by T1.
+
+Note that a transaction executing in parallel with T1 which reads a key written by T1 can have `start_ts` before or after T1's `commit_ts`.
+
+Consider all cases of Parallel Commit:
+
+* Normal execution process: After Prewrite is completed, TiKV will return a response to the client. If it is to take the `commit_ts` asynchronously afterwards, then the client could start a new transaction between the time of receiving the response and the time of TiKV getting a `commit_ts`. The new transaction would therefore read the old value of a key modified by the first transaction which violates RC. A solution is for TiKV to first obtain a timestamp and return that to the client as part of the prewrite response, then use that timestamp to commit.
+* After Prewrite succeeds, the client disappears, but the transaction is successfully committed. How to choose a `commit_ts`? A new timestamp from PD is not communicated to the client. Some timestamp must be persisted in TiKV.
+
+Parallel Commit is considered to be a successful commit after all prewrites are successful. Transactions after this must be able to see it, and transactions before this can not see it. How to guarantee this?
+
+A solution is for tikv to maintain a `max_start_ts`. When a prewrite writes its locks and returns to the client, use `max(max_start_ts for each key) + 1` to submit. If finalisation fails and a client resolves a lock, TiKV can recalculate `commit_ts`.
+
+The essence of solving this type of problem is to postpone operations that may cause errors until the operation is not an error. Two possible solutions are:
+
+* The region records `min_commit_ts`, which is the smallest `commit_ts` of a prewrite of any async commit transaction currently in progress (i.e., between prewrite and commit) may use. Every in-progress transaction must have a `commit_ts >= min_commit_ts`. For every read request to the region, if its `start_ts` is greater than `min_commit_ts`, the read request blocks until `min_commit_ts` is greater than `start_ts`.
+* The above can be refined by shrinking the granularity from a whole region level to a single key. Two implementation options:
+  - The lock is written to memory first, then `max_start_ts` is obtained and then written to raftstore. When reading, first read the lock in the memory. After successfully writing to raftstore, the lock in memory is cleared, and the lock corresponding to the region is cleared when the leader switches.
+  - Use rocksdb as the storage medium for memory lock, first write to rocksdb, then write to raftstore. The implementation is also simple, and the effect is the same as a.
+
+
+### Initiating resolve lock
+
+As touched upon in the commit timestamp section above, it is not clear how resolve lock should be initiated. There are two options:
+
+* TiKV resolves locks automatically.
+* TiKV returns to TiDB which instantiates resolve lock.
+
+The TiKV approach is faster, but it means we have to get a timestamp from PD and that a read might block for a long time. The TiDB approach takes a lot longer, but is more correct.
+
+### Replica read
+
+The above Commit Ts calculation does not consider the replica read situation, consider the following scenario:
+The leader's maxStartTs is 1, and async commit selects 1 + 1 = 2 as commitTs.
+The startTs of replica read is 3, and it should either see the lock or the data with commitTs of 2. However, due to log replication, replica read may fail to read the lock, which will destroy snapshot isolation.
+
+The solution is the same as prewrite solution 1:
+The read index request carries start ts. When region’s min commit ts < req’s start ts, it is necessary to wait for the min commit ts to exceed start ts before responding to the read index.
+
+
+### Change of leader
+
+The above structure is stored in the leader memory. Although there is no such information on the replica, it will interact with the leader, so it is easy to solve. How to solve the transfer leader? No need to solve, because the new leader must submit an entry for the current term to provide read and write services, so all the information in the previous memory will be submitted, and this part of the information is no longer needed.
+
+It should be noted that if the above scheme is adopted, this part of the memory information and pending requests must be processed when the leader changes.
+
+
+### Blocking reads
+
+TODO
+
+### Schema check
+
+The existing 2pc process checks the schema version before issue the final commit command, if we do async commit, we don't have a chance to check the schema version. If it has changed, we may break the index/row consistency.
+
+The above issue only happens if the transaction prewrite phase is too long, exceeds the 2 * ddl_lease time.
+
