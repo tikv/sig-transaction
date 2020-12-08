@@ -734,99 +734,26 @@ fn read_check_range(&amp;self, start_key: &amp;Key, end_key: &amp;Key, ts: TimeS
 </span></code></pre></pre>
 <h1><a class="header" href="#async-commit-1" id="async-commit-1">Async commit</a></h1>
 <p>This directory contains design documentation for async commit. Implementation is in progress, see <a href="design/async-commit/project-summary.html">project summary</a>.</p>
-<p>Implementation is tracked in a <a href="https://github.com/tikv/sig-transaction/issues/36">tracking issue</a> and <a href="https://github.com/tikv/tikv/projects/34">TiKV project</a>.</p>
+<p>Implementation is tracked <a href="https://docs.google.com/spreadsheets/d/1W6QYTtd7iG7FWfod9c1j-apYElGiIxKRqvQeiDYpjtY/edit#">internally</a> at PingCAP.</p>
 <h2><a class="header" href="#overview" id="overview">Overview</a></h2>
 <p>The key idea is that we can return success to the user (from TiDB) when all prewrites have succeeded, because at that point we know that commit will not fail. By returning at this point we save a round trip between TiDB and TiKV which includes a consensus write of the commit.</p>
 <p>This modification is sound because the source of truth for whether a transaction is committed is considered to be distributed among all locks.</p>
 <p>The main difficulty is in choosing a timestamp for the commit ts of the transaction.</p>
+<p>See <a href="design/async-commit/spec.html">the design spec</a> for detail.</p>
 <h2><a class="header" href="#protocol" id="protocol">Protocol</a></h2>
-<p>This section is a little out of date, refer to <a href="design/async-commit/initial-design.html">initial-design.md</a> for a more up to date version.</p>
-<h3><a class="header" href="#phase-1-reads-and-writes" id="phase-1-reads-and-writes">Phase 1: reads and writes</a></h3>
-<p>The client (TiDB) sends <code>lock</code> messages to the server (TiKV) for each <code>SELECT ... FOR UPDATE</code>. Each lock message has a <code>for_update_ts</code>.</p>
-<p>Modifications are collected in a buffer and sent as a <code>prewrite</code> message. No reads are permitted after prewrite.</p>
-<p>The client gets a start TS for the whole transaction which is included with every message.</p>
-<p>For both messages, the server checks validity and writes locally. It then sends an <code>ack</code> back to the client. For a read, the read value is returned with the ack. Then the server writes the lock and/or modifications to the RaftStore (a 'consensus write'). After the consensus write completes, the server sends a <code>response</code> to the client.</p>
-<p>For every lock and modification, the server writes a lock to the key's lock CF; each lock stores a reference to the transaction's primary key. For modifications, we also store a value in the default CF.</p>
-<p>For the primary key's lock, we store a list of keys in the transaction and their status (whether the key is locked locally, across all nodes, or unlocked), plus an overall status for the transaction.</p>
-<p>TODO multiple regions.</p>
-<h3><a class="header" href="#phase-2-finalisation-formerly-commit" id="phase-2-finalisation-formerly-commit">Phase 2: finalisation (formerly commit)</a></h3>
-<p>When the client has <code>response</code>s (not <code>ack</code>s) for every message in a transaction, it sends a single <code>finalise</code> message to the server. The client considers the transaction complete when it sends the <code>finalise</code> message, it does not need to wait for a response. The client obtains the commit ts from PD for the finalise message.</p>
-<p>When the server receives a <code>finalise</code> message, it <em>commits</em> the transaction. Committing is guaranteed to succeed.</p>
-<p>Possible optimisation: the server could finalise the transaction when the prewrite completes without involving the client (see the resolve lock section).</p>
-<p>Writes are added to each key which is written, with the commit ts from the primary key. The server unlocks all keys, primary key last. </p>
-<h3><a class="header" href="#reads" id="reads">Reads</a></h3>
-<p>On read, if a key is locked, then we must look up the primary key and it's lock which holds the transaction record. We wait for the lock's ttl to expire (based on the read's <code>for_update_ts</code>). After the ttl expires, if the key is unlocked, the read can progress. Otherwise we must resolve the lock in some way.</p>
+<h3><a class="header" href="#prewrite-1" id="prewrite-1">Prewrite</a></h3>
+<p>TiDB sends an enhanced prewrite message, with <code>use_async_commit</code> set to true, and <code>secondaries</code> set to a list of all keys in the transaction, except the primary key.</p>
+<p>In TiKV, the secondary keys are stored in the lock data structure for the primary key.</p>
+<p>If all prewrite messages are successful, then TiDB can send success to its client without waiting for the commit phase.</p>
+<p>TiKV returns a <code>min_commit_ts</code> to TiDB in its prewrite response. It will be <code>0</code> if async commit could not be used. The timestamp sent to TiDB is the maximum of the timestamps for each key. The minimum commit timestamp for each key is the maximum of the max read ts (i.e., a conservative approximation of the last time the key was read), the start ts of the transaction, and the for_update_ts of the transaction.</p>
+<h3><a class="header" href="#commit-1" id="commit-1">Commit</a></h3>
+<p>The commit phase is mostly unchanged, the only difference is that all commit messages are sent asynchronously, including the primary key's.</p>
 <h3><a class="header" href="#resolve-lock" id="resolve-lock">Resolve lock</a></h3>
 <p>(Called TSRP in CRDB).</p>
-<p>Resolve lock determines a transaction's commit status. If the transaction has been rolled back or committed, there is nothing to do. Otherwise, if every consensus write has succeeded, the transaction is committed. Otherwise, the transaction is considered to have timed out and is rolled back.</p>
-<p>First we check the txn's state as recorded in the primary key. If it is written to Raft, then we can finalise (something must have failed in finalisation or finalisation was never received). (I think this is only an optimisation, we could skip this step and go straight to the next).</p>
-<p>Otherwise, we check each lock, if all locks have state consensus write, then we run finalisation. If any lock is only written locally or has failed, then we must rollback the transaction. NOTE: this might require communicating with other nodes due to keys in other regions.</p>
-<h3><a class="header" href="#rollback-1" id="rollback-1">Rollback</a></h3>
-<p>For each modification in a transaction, add a rollback write to the key and remove the lock. For each read, remove the lock. The primary lock should be removed last.</p>
-<p>TODO partial rollback with for_update_ts</p>
-<h2><a class="header" href="#issues" id="issues">Issues</a></h2>
-<p>See also <a href="design/async-commit/parallel-commit-known-issues-and-solutions.html">parallel-commit-known-issues-and-solutions.md</a>.</p>
-<h3><a class="header" href="#commit-timestamp" id="commit-timestamp">Commit timestamp</a></h3>
-<p>See <a href="design/async-commit/globally-non-unique-timestamps.html">parallel-commit-known-issues-and-solutions.md</a> for discussion.</p>
-<p>In the happy path, there is no problem. However, if the finalise message is lost then when we resolve the lock and the transaction needs committing, then we need to provide a commit timestamp. Unfortunately it seems there is no good answer for what ts to use.</p>
-<p>Consider the following example: transaction 1 with start_ts = 1, prewrite @ ts=2, finalise @ ts=4. Transaction 2 makes a non-locking read at ts = 3. If all goes well, this is fine: the transaction is committed by receiving the finalise message with commit_ts = 4. If the read arrives before commit, it finds the key locked and blocks. After the commit it will read the earlier value since its ts is &lt; the commit ts.</p>
-<p>However, if the finalise message is lost, then we must initiate a 'resolve lock' once the lock times out. There are some options; bad ideas:</p>
-<ul>
-<li>Use the prewrite ts: this is unsound because the ts is less than the read's ts and so the read will see different values for the key depending on whether it arrives before or after the commit happening, even though its ts is &gt; than the commit ts. That violates the Read Committed property.</li>
-<li>Transaction 2 returns an error to TiDB and TiDB gets a new ts from PD and uses that as the commit_ts for the resolve lock request. This has the disadvantage that non-locking reads can block and then fail, and require the reader to resolve locks. This timestamp is also later than the timestamp that transaction 1's client thinks it is, which can lead to RC violation.</li>
-<li>Get a new ts from PD. This has the problem that TiDB may have reported the transaction as committed at an earlier times stamp to the user, which can lead to RC violation.</li>
-</ul>
-<p>Possibly good ideas:</p>
-<ul>
-<li>Record the 'max read ts' for each key. E.g., when the read arrives, we record 3 as the max_read_ts (as long as there is no hight read timestamp). We can then use <code>max_read_ts + 1</code> as the commit ts. However, that means that timestamps are no longer unique. It's unclear how much of a problem that is. If it is implemented on disk, then it would increase latency of reads intolerably. If it is implemented in memory it could use a lot of memory and we'd need to handle recovery somehow (we could save memory by storing only a per-node or per-region max read ts).</li>
-<li>Use a hybrid logical clock (HLC) for timestamps. In this way we can enforce causal consistency rather than linearisability. In effect, the ordering of timestamps becomes partial and if the finalise message is lost then we cannot compare transaction 1's timestamps with transaction 2's timestamps without further resolution. Since this would require changing timestamps everywhere, it would be <em>a lot</em> of work. Its also not clear exactly how this would be implemented and how this would affect transaction 2. Seems like at the least, non-locking reads would block.</li>
-</ul>
-<p>In order to guarantee SI, <code>commit_ts</code> of T1 needs to satisfy:</p>
-<ul>
-<li>It is larger than the <code>start_ts</code> of any other transaction which has read the old value of a key written by T1.</li>
-<li>It is smaller than the <code>start_ts</code> of any other transaction which reads the new value of any key written by T1.</li>
-</ul>
-<p>Note that a transaction executing in parallel with T1 which reads a key written by T1 can have <code>start_ts</code> before or after T1's <code>commit_ts</code>.</p>
-<p>Consider all cases of Parallel Commit:</p>
-<ul>
-<li>Normal execution process: After Prewrite is completed, TiKV will return a response to the client. If it is to take the <code>commit_ts</code> asynchronously afterwards, then the client could start a new transaction between the time of receiving the response and the time of TiKV getting a <code>commit_ts</code>. The new transaction would therefore read the old value of a key modified by the first transaction which violates RC. A solution is for TiKV to first obtain a timestamp and return that to the client as part of the prewrite response, then use that timestamp to commit.</li>
-<li>After Prewrite succeeds, the client disappears, but the transaction is successfully committed. How to choose a <code>commit_ts</code>? A new timestamp from PD is not communicated to the client. Some timestamp must be persisted in TiKV.</li>
-</ul>
-<p>Parallel Commit is considered to be a successful commit after all prewrites are successful. Transactions after this must be able to see it, and transactions before this can not see it. How to guarantee this?</p>
-<p>A solution is for tikv to maintain a <code>max_start_ts</code>. When a prewrite writes its locks and returns to the client, use <code>max(max_start_ts for each key) + 1</code> to submit. If finalisation fails and a client resolves a lock, TiKV can recalculate <code>commit_ts</code>.</p>
-<p>The essence of solving this type of problem is to postpone operations that may cause errors until the operation is not an error. Two possible solutions are:</p>
-<ul>
-<li>The region records <code>min_commit_ts</code>, which is the smallest <code>commit_ts</code> of a prewrite of any async commit transaction currently in progress (i.e., between prewrite and commit) may use. Every in-progress transaction must have a <code>commit_ts &gt;= min_commit_ts</code>. For every read request to the region, if its <code>start_ts</code> is greater than <code>min_commit_ts</code>, the read request blocks until <code>min_commit_ts</code> is greater than <code>start_ts</code>.</li>
-<li>The above can be refined by shrinking the granularity from a whole region level to a single key. Two implementation options:
-<ul>
-<li>The lock is written to memory first, then <code>max_start_ts</code> is obtained and then written to raftstore. When reading, first read the lock in the memory. After successfully writing to raftstore, the lock in memory is cleared, and the lock corresponding to the region is cleared when the leader switches.</li>
-<li>Use rocksdb as the storage medium for memory lock, first write to rocksdb, then write to raftstore. The implementation is also simple, and the effect is the same as a.</li>
-</ul>
-</li>
-</ul>
-<h3><a class="header" href="#initiating-resolve-lock" id="initiating-resolve-lock">Initiating resolve lock</a></h3>
-<p>As touched upon in the commit timestamp section above, it is not clear how resolve lock should be initiated. There are two options:</p>
-<ul>
-<li>TiKV resolves locks automatically.</li>
-<li>TiKV returns to TiDB which instantiates resolve lock.</li>
-</ul>
-<p>The TiKV approach is faster, but it means we have to get a timestamp from PD and that a read might block for a long time. The TiDB approach takes a lot longer, but is more correct.</p>
-<h3><a class="header" href="#replica-read" id="replica-read">Replica read</a></h3>
-<p>The above Commit Ts calculation does not consider the replica read situation, consider the following scenario:
-The leader's maxStartTs is 1, and async commit selects 1 + 1 = 2 as commitTs.
-The startTs of replica read is 3, and it should either see the lock or the data with commitTs of 2. However, due to log replication, replica read may fail to read the lock, which will destroy snapshot isolation.</p>
-<p>The solution is the same as prewrite solution 1:
-The read index request carries start ts. When region’s min commit ts &lt; req’s start ts, it is necessary to wait for the min commit ts to exceed start ts before responding to the read index.</p>
-<h3><a class="header" href="#change-of-leader" id="change-of-leader">Change of leader</a></h3>
-<p>The above structure is stored in the leader memory. Although there is no such information on the replica, it will interact with the leader, so it is easy to solve. How to solve the transfer leader? No need to solve, because the new leader must submit an entry for the current term to provide read and write services, so all the information in the previous memory will be submitted, and this part of the information is no longer needed.</p>
-<p>It should be noted that if the above scheme is adopted, this part of the memory information and pending requests must be processed when the leader changes.</p>
-<h3><a class="header" href="#blocking-reads" id="blocking-reads">Blocking reads</a></h3>
-<p>TODO</p>
-<h3><a class="header" href="#schema-check" id="schema-check">Schema check</a></h3>
-<p>The existing 2pc process checks the schema version before issue the final commit command, if we do async commit, we don't have a chance to check the schema version. If it has changed, we may break the index/row consistency.</p>
-<p>The above issue only happens if the transaction prewrite phase is too long, exceeds the 2 * ddl_lease time.</p>
+<p>When resolving a lock, TiDB must find the primary key and queries it. If the key is committed, then the transaction has been committed. If the key is locked, then TiKV sends the secondary keys back to TiDB. TiDB must query all of them using a <code>CheckSecondaryLocks</code> message. If any are not committed, then the transaction is not committed and must be rolled back.</p>
 <h2><a class="header" href="#1pc" id="1pc">1PC</a></h2>
-<p>TODO</p>
+<p>Async commit is a generalisation of 1pc. We can reuse some of the async commit work to implement 1pc. 1pc is only possible when all keys touched by a transaction are in the same region and binlog is not being used. TiDB then sets <code>try_one_pc</code> in the prewrite message to true.</p>
+<p>In TiKV, a 1pc transaction can be committed in the prewrite phase, and no further action is needed. </p>
 <h2><a class="header" href="#possible-optimisations" id="possible-optimisations">Possible optimisations</a></h2>
 <p>There are restrictions on the size of the transaction. For example, if the key involved in the transaction is less than 64, async commit is used, or a hierarchical structure is adopted. The primary lock records a few secondary locks, and these secondary locks record other secondary locks respectively. It is easy to implement, just recursion, and the cost of failure recovery needs to be considered.</p>
 <p>Crdb mentioned two ways to reduce the impact of recovery, and TiDB has also implemented: one is to perform commit cleanup as soon as possible when committing; the second is transaction heartbeat to prevent cleanup of alive transactions.</p>
@@ -843,7 +770,6 @@ The read index request carries start ts. When region’s min commit ts &lt; req�
 <ul>
 <li><a href="https://docs.google.com/document/d/1-yn5zyn8NpqXRii9sA5wDcNHL3L0BYVaEFyD-YChX1g/edit#">Zhao Lei's doc 中文 + en</a></li>
 <li><a href="https://www.cockroachlabs.com/blog/parallel-commits/">CockroachDB blog post</a></li>
-<li><a href="https://github.com/nrc/parcom">nrc's modelling effort</a></li>
 </ul>
 <h1><a class="header" href="#async-commit-2" id="async-commit-2">Async commit</a></h1>
 <p>Async commit is a change to the transaction protocols (optimistic and pessimistic). It allows returning success to the client once all prewrites succeed, without having to wait for a commit message. Safety is maintained by a having a more involved recovery procedure when another transaction encounters a lock which uses async commit. You can think of the commit status of a transaction as being distributed amongst all locks until the transaction is (asynchronously) committed.</p>
@@ -1200,6 +1126,66 @@ TiFlash already uses the ReadIndex RPC for replica read. TiKV can use the simila
 <h2><a class="header" href="#schema-version-checking" id="schema-version-checking">Schema Version Checking</a></h2>
 <p>The existing 2pc process checks the schema version before issue the final commit command, if we do async commit, we don't have a chance to check the schema version. If it has changed, we may break the index/row consistency.</p>
 <p><strong>TODO: This issue is still to be discussed.</strong></p>
+<h1><a class="header" href="#historic-issues-taken-from-readmemd" id="historic-issues-taken-from-readmemd">Historic issues taken from README.md</a></h1>
+<h3><a class="header" href="#commit-timestamp" id="commit-timestamp">Commit timestamp</a></h3>
+<p>See <a href="design/async-commit/globally-non-unique-timestamps.html">parallel-commit-known-issues-and-solutions.md</a> for discussion.</p>
+<p>In the happy path, there is no problem. However, if the finalise message is lost then when we resolve the lock and the transaction needs committing, then we need to provide a commit timestamp. Unfortunately it seems there is no good answer for what ts to use.</p>
+<p>Consider the following example: transaction 1 with start_ts = 1, prewrite @ ts=2, finalise @ ts=4. Transaction 2 makes a non-locking read at ts = 3. If all goes well, this is fine: the transaction is committed by receiving the finalise message with commit_ts = 4. If the read arrives before commit, it finds the key locked and blocks. After the commit it will read the earlier value since its ts is &lt; the commit ts.</p>
+<p>However, if the finalise message is lost, then we must initiate a 'resolve lock' once the lock times out. There are some options; bad ideas:</p>
+<ul>
+<li>Use the prewrite ts: this is unsound because the ts is less than the read's ts and so the read will see different values for the key depending on whether it arrives before or after the commit happening, even though its ts is &gt; than the commit ts. That violates the Read Committed property.</li>
+<li>Transaction 2 returns an error to TiDB and TiDB gets a new ts from PD and uses that as the commit_ts for the resolve lock request. This has the disadvantage that non-locking reads can block and then fail, and require the reader to resolve locks. This timestamp is also later than the timestamp that transaction 1's client thinks it is, which can lead to RC violation.</li>
+<li>Get a new ts from PD. This has the problem that TiDB may have reported the transaction as committed at an earlier times stamp to the user, which can lead to RC violation.</li>
+</ul>
+<p>Possibly good ideas:</p>
+<ul>
+<li>Record the 'max read ts' for each key. E.g., when the read arrives, we record 3 as the max_read_ts (as long as there is no hight read timestamp). We can then use <code>max_read_ts + 1</code> as the commit ts. However, that means that timestamps are no longer unique. It's unclear how much of a problem that is. If it is implemented on disk, then it would increase latency of reads intolerably. If it is implemented in memory it could use a lot of memory and we'd need to handle recovery somehow (we could save memory by storing only a per-node or per-region max read ts).</li>
+<li>Use a hybrid logical clock (HLC) for timestamps. In this way we can enforce causal consistency rather than linearisability. In effect, the ordering of timestamps becomes partial and if the finalise message is lost then we cannot compare transaction 1's timestamps with transaction 2's timestamps without further resolution. Since this would require changing timestamps everywhere, it would be <em>a lot</em> of work. Its also not clear exactly how this would be implemented and how this would affect transaction 2. Seems like at the least, non-locking reads would block.</li>
+</ul>
+<p>In order to guarantee SI, <code>commit_ts</code> of T1 needs to satisfy:</p>
+<ul>
+<li>It is larger than the <code>start_ts</code> of any other transaction which has read the old value of a key written by T1.</li>
+<li>It is smaller than the <code>start_ts</code> of any other transaction which reads the new value of any key written by T1.</li>
+</ul>
+<p>Note that a transaction executing in parallel with T1 which reads a key written by T1 can have <code>start_ts</code> before or after T1's <code>commit_ts</code>.</p>
+<p>Consider all cases of Parallel Commit:</p>
+<ul>
+<li>Normal execution process: After Prewrite is completed, TiKV will return a response to the client. If it is to take the <code>commit_ts</code> asynchronously afterwards, then the client could start a new transaction between the time of receiving the response and the time of TiKV getting a <code>commit_ts</code>. The new transaction would therefore read the old value of a key modified by the first transaction which violates RC. A solution is for TiKV to first obtain a timestamp and return that to the client as part of the prewrite response, then use that timestamp to commit.</li>
+<li>After Prewrite succeeds, the client disappears, but the transaction is successfully committed. How to choose a <code>commit_ts</code>? A new timestamp from PD is not communicated to the client. Some timestamp must be persisted in TiKV.</li>
+</ul>
+<p>Parallel Commit is considered to be a successful commit after all prewrites are successful. Transactions after this must be able to see it, and transactions before this can not see it. How to guarantee this?</p>
+<p>A solution is for tikv to maintain a <code>max_start_ts</code>. When a prewrite writes its locks and returns to the client, use <code>max(max_start_ts for each key) + 1</code> to submit. If finalisation fails and a client resolves a lock, TiKV can recalculate <code>commit_ts</code>.</p>
+<p>The essence of solving this type of problem is to postpone operations that may cause errors until the operation is not an error. Two possible solutions are:</p>
+<ul>
+<li>The region records <code>min_commit_ts</code>, which is the smallest <code>commit_ts</code> of a prewrite of any async commit transaction currently in progress (i.e., between prewrite and commit) may use. Every in-progress transaction must have a <code>commit_ts &gt;= min_commit_ts</code>. For every read request to the region, if its <code>start_ts</code> is greater than <code>min_commit_ts</code>, the read request blocks until <code>min_commit_ts</code> is greater than <code>start_ts</code>.</li>
+<li>The above can be refined by shrinking the granularity from a whole region level to a single key. Two implementation options:
+<ul>
+<li>The lock is written to memory first, then <code>max_start_ts</code> is obtained and then written to raftstore. When reading, first read the lock in the memory. After successfully writing to raftstore, the lock in memory is cleared, and the lock corresponding to the region is cleared when the leader switches.</li>
+<li>Use rocksdb as the storage medium for memory lock, first write to rocksdb, then write to raftstore. The implementation is also simple, and the effect is the same as a.</li>
+</ul>
+</li>
+</ul>
+<h3><a class="header" href="#initiating-resolve-lock" id="initiating-resolve-lock">Initiating resolve lock</a></h3>
+<p>As touched upon in the commit timestamp section above, it is not clear how resolve lock should be initiated. There are two options:</p>
+<ul>
+<li>TiKV resolves locks automatically.</li>
+<li>TiKV returns to TiDB which instantiates resolve lock.</li>
+</ul>
+<p>The TiKV approach is faster, but it means we have to get a timestamp from PD and that a read might block for a long time. The TiDB approach takes a lot longer, but is more correct.</p>
+<h3><a class="header" href="#replica-read" id="replica-read">Replica read</a></h3>
+<p>The above Commit Ts calculation does not consider the replica read situation, consider the following scenario:
+The leader's maxStartTs is 1, and async commit selects 1 + 1 = 2 as commitTs.
+The startTs of replica read is 3, and it should either see the lock or the data with commitTs of 2. However, due to log replication, replica read may fail to read the lock, which will destroy snapshot isolation.</p>
+<p>The solution is the same as prewrite solution 1:
+The read index request carries start ts. When region’s min commit ts &lt; req’s start ts, it is necessary to wait for the min commit ts to exceed start ts before responding to the read index.</p>
+<h3><a class="header" href="#change-of-leader" id="change-of-leader">Change of leader</a></h3>
+<p>The above structure is stored in the leader memory. Although there is no such information on the replica, it will interact with the leader, so it is easy to solve. How to solve the transfer leader? No need to solve, because the new leader must submit an entry for the current term to provide read and write services, so all the information in the previous memory will be submitted, and this part of the information is no longer needed.</p>
+<p>It should be noted that if the above scheme is adopted, this part of the memory information and pending requests must be processed when the leader changes.</p>
+<h3><a class="header" href="#blocking-reads" id="blocking-reads">Blocking reads</a></h3>
+<p>TODO</p>
+<h3><a class="header" href="#schema-check" id="schema-check">Schema check</a></h3>
+<p>The existing 2pc process checks the schema version before issue the final commit command, if we do async commit, we don't have a chance to check the schema version. If it has changed, we may break the index/row consistency.</p>
+<p>The above issue only happens if the transaction prewrite phase is too long, exceeds the 2 * ddl_lease time.</p>
 
                     </main>
 
