@@ -77,7 +77,7 @@ The client has system variables for supporting async commit (`tidb_enable_async_
 
 The client must set `use_async_commit` and/or `try_one_pc` in the `PrewriteRequest`. If using async commit, then the `secondaries` field should contain the keys of all keys locked in the transaction except the primary key. If the user wants external consistency, a new timestamp is fetched from PD and used as the `min_commit_ts`. Otherwise, `min_commit_ts` is set to the maximum of the transaction's start and 'for update' timestamps plus `1` (if we get a timestamp from PD it should be greater than both of those).
 
-When the client receives the `PrewriteResponse`, it should check the `one_pc_commit_ts` to see if the server used 1pc: if it is non-zero, then 1pc was used and that timestamp should be returned to the user with a success message. If it is non-zero, then 1pc failed and the client should continue with the 2pc protocol.
+When the client receives the `PrewriteResponse`, it should check the `one_pc_commit_ts` to see if the server used 1pc: if it is non-zero, then 1pc was used and that timestamp should be returned to the user with a success message. If it is zero, then 1pc failed and the client should continue with the 2pc protocol.
 
 The client calculates the overall minimum commit timestamp from the maximum of the `min_commit_ts` of each response. If any `min_commit_ts` is zero, then async commit failed and the client should fallback to 2pc (see below). That overall minimum commit timestamp is returned to the user as the commit timestamp of the transaction with a success message.
 
