@@ -28,7 +28,8 @@ If you have questions about the SIG or transactions in TiKV, please get in touch
 ## Resources
 
 * [The TiKV blog](https://tikv.org/blog/),
-* [TiDB transaction documentation](https://pingcap.com/docs/stable/transaction-overview).
+* [TiDB transaction documentation](https://pingcap.com/docs/stable/transaction-overview),
+* [TiDB and TiKV blog](https://dev.to/srisatya/for-readers-that-may-not-be-familiar-what-are-tidb-and-tikv-3m56).
 
 ## Repositories
 
