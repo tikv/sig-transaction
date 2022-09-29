@@ -1,4 +1,4 @@
-# [publicly available] WRITE CF & LOCK CF discussion
+# WRITE CF & LOCK CF discussion
 
 ## Background
 
